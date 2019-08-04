@@ -1,0 +1,23 @@
+<canvas id='canvas' 
+	 style='position:fixed; top:10%; left:0%; width:100%;'> 
+</canvas> <script>
+
+var canvas = document.getElementById('canvas');
+
+var gl = canvas.getContext('webgl');
+
+iter = 0;
+function loop() {
+	iter++;
+
+	let r = Math.cos(iter/50)/2 + .5;
+	let g = Math.cos(iter/60)/2 + .5;
+	let b = Math.cos(iter/70)/2 + .5;
+
+	gl.clearColor(r, g, b, 1);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	if (iter < 1000) {requestAnimationFrame(loop);}}
+
+loop();
+
+</script>
