@@ -1,12 +1,10 @@
-<canvas id='canvas' 
-	 style='position:fixed; top:10%; left:0%; width:100%;'> 
+<canvas id='canvas' style='position:fixed; top:10%; left:0%; width:100%;'> 
 </canvas> <script>
 
 var canvas = document.getElementById('canvas');
+var gl     = canvas.getContext('webgl');
 
-var gl = canvas.getContext('webgl');
-
-iter = 0;
+let iter = 0;
 function loop() {
 	iter++;
 
