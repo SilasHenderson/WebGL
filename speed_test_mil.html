@@ -1,0 +1,75 @@
+<!-- Speed Test: Update 1,000,000 2d points. -->
+
+<html> <body>
+<p> <div id = 'div'> </div> </p>
+<canvas id = "canvas" width = "500" height = "500" ></canvas>
+<script>
+
+var div    = document.getElementById('div');
+
+var canvas = document.getElementById('canvas');
+var gl     = canvas.getContext('webgl2'); 
+
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,  `
+    attribute vec2 pos;
+    varying float c;
+    void main(void) {
+        c = length(pos);
+        gl_Position = vec4(pos, 0, 1.0);
+        gl_PointSize = 1.0;}`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+    precision mediump float;
+    varying float c;
+    void main(void) {
+        float r = sin(100.*c);
+        float b = cos(100.*c);
+        gl_FragColor = vec4(r, b, c, 0.9);}`);
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram( shader_program);
+    gl.useProgram(  shader_program);
+
+var vertices = [];
+    for (let i = 0; i < 2000000; i++) {
+        vertices.push(Math.random() - 2*Math.random());}
+    vertices = new Float32Array(vertices);
+
+var vertex_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
+
+var pos = gl.getAttribLocation(shader_program, 'pos');
+    gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(pos);
+
+gl.clearColor(0.0, 0.0, 0.0, 1.0);
+gl.enable(gl.DEPTH_TEST);
+gl.viewport(0,0,canvas.width,canvas.height);
+
+let iter = 1;
+function loop() {
+    gl.clear( gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+
+    for (let i = 0; i < 2000000; i++) {
+        vertices[i] = Math.random() - 2*Math.random();}
+
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(vertices));
+    gl.drawArrays(gl.POINTS, 0, vertices.length/2);
+
+    div.innerHTML = 
+       'WebGL Speed Test: Update 1 Million Points <br>' + 
+       'Iteration:' + iter;
+    iter++;
+    if (iter < 101) {requestAnimationFrame(loop);}}
+
+loop();
+
+</script> </body> </html>
+
