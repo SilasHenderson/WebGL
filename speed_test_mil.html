@@ -1,15 +1,14 @@
 <!-- Speed Test: Update 1,000,000 2d points. -->
 
-<html> <body>
 <p> <div id = 'div'> </div> </p>
-<canvas id = "canvas" width = "500" height = "500" ></canvas>
+<canvas id = "canvas" width = "500" height = "500" > </canvas>
+
 <script>
-
 var div    = document.getElementById('div');
-
 var canvas = document.getElementById('canvas');
 var gl     = canvas.getContext('webgl2'); 
 
+/*------------------------- Shader -------------------------*/
 var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertex_shader,  `
     attribute vec2 pos;
@@ -36,11 +35,8 @@ var shader_program = gl.createProgram();
     gl.linkProgram( shader_program);
     gl.useProgram(  shader_program);
 
-var vertices = [];
-    for (let i = 0; i < 2000000; i++) {
-        vertices.push(Math.random() - 2*Math.random());}
-    vertices = new Float32Array(vertices);
-
+/*------------------ Buffer/Attributes ----------------------*/
+var vertices = new Float32Array(2000000);
 var vertex_buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
@@ -49,27 +45,25 @@ var pos = gl.getAttribLocation(shader_program, 'pos');
     gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(pos);
 
+/*------------------------ Main --------------------------*/
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
-gl.enable(gl.DEPTH_TEST);
-gl.viewport(0,0,canvas.width,canvas.height);
 
 let iter = 1;
 function loop() {
     gl.clear( gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 
     for (let i = 0; i < 2000000; i++) {
-        vertices[i] = Math.random() - 2*Math.random();}
+        vertices[i] = 1 - 2*Math.random();}
 
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(vertices));
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, vertices);
     gl.drawArrays(gl.POINTS, 0, vertices.length/2);
 
     div.innerHTML = 
        'WebGL Speed Test: Update 1 Million Points <br>' + 
        'Iteration:' + iter;
-    iter++;
-    if (iter < 101) {requestAnimationFrame(loop);}}
+    
+    iter++; 
+    if (iter < 101) { requestAnimationFrame(loop);}}
 
 loop();
-
-</script> </body> </html>
-
+</script>
