@@ -1,0 +1,48 @@
+<html> <body> <script src = 'gpu.js'> </script> <script>
+
+const gpu = new GPU();
+
+var dim = 10;
+var mat = new Float32Array(dim*dim);
+var mat_copy = new Float32Array(dim*dim);
+for (let i = 0; i < dim*dim; i++) {mat[i]  = Math.random();}
+
+/*-------------------------------- Fcn ---------------------*/
+const clear_pivot = gpu.createKernel(function(matrix, dim, pivot) {
+	
+	let idx = this.thread.x;
+	let row = Math.floor(idx/dim);
+	let col = idx - dim*row;
+	let this_val  = matrix[dim*row+col];
+	let new_val   = this_val;
+
+	if (row > pivot) {
+		let pivot_val = matrix[dim*pivot+pivot];
+		let elim_val  = matrix[dim*row + pivot];
+		let p_row_val = matrix[dim*pivot+col];
+		new_val   = this_val - elim_val/pivot_val*p_row_val;}
+	
+	return new_val;}).setOutput([dim*dim]);
+
+/*----------------------------- Main ------------------------*/
+
+for (let i = 0; i < dim; i++) {
+	copy();
+	mat = clear_pivot(mat_copy, dim, i);}
+
+document.body.innerHTML = print_mat(mat);
+
+function copy() {
+	for (let i = 0; i < mat.length; i++) {
+		mat_copy[i] = mat[i];}}
+
+function print_mat(A) {
+	let dim    = Math.sqrt(A.length);
+	let string = '';
+	for (let row = 0; row < dim; row++) {
+		for (let col = 0; col < dim; col++) {
+			string += A[row*dim+col].toFixed(2) + ', ';}
+		string += '<br>';}
+	return string;}
+
+</script> </body> </html>
