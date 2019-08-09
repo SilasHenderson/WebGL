@@ -1,0 +1,53 @@
+<!-- grid - - - - - - - - Document - - - - - - - - - &;;#&# -->
+<html> <body> <canvas id='canvas' style=
+	'position:fixed; top:0%; left:0%; width:100%;'> </canvas> 
+<script>
+var canvas = document.getElementById('canvas');
+var gl     = canvas.getContext('webgl2');
+
+/*---------------------- Shader ----------------------------*/
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`
+        attribute vec2 pos_a;     varying vec2 pos;
+        attribute float color_a;  varying float color;
+        void main(void) {
+            pos = pos_a;  
+            color = color_a;
+            gl_Position = vec4(pos_a, 0, 1);}`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+        precision mediump float;
+        varying float color;
+        varying vec2 pos;
+        void main(void) {
+            gl_FragColor = vec4(color, color, color, 1);}`); 
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+
+/*------------------------- Buffers/Data  -------------------------*/
+var vertex = new Float32Array(
+    [-1,-1, 1,-1, 1, 1,  -1,-1, 1, 1,-1, 1]);
+    var vertex_buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertex, gl.STATIC_DRAW);
+    var pos_a = gl.getAttribLocation(shader_program, 'pos_a');
+        gl.vertexAttribPointer(pos_a, 2, gl.FLOAT, false, 0, 0); 
+        gl.enableVertexAttribArray(pos_a);
+
+var color = new Float32Array([.1, .1, .5, .5, .5, .5]);
+    var color_buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW);
+    var color_a = gl.getAttribLocation(shader_program, 'color_a');
+        gl.vertexAttribPointer(color_a, 1, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(color_a);
+
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+</script> </body> </html>
