@@ -9,3 +9,4 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `speed_test_mil.html`:  Update 1,000,000 Points animation
 * `gpu_row_reduce.html`: Reduce Matrix with `gpu.js`
 * `uniform_test.html`: Animation with Uniforms
+* `webgl_min.html`: Minimum Setup
