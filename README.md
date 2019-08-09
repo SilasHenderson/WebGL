@@ -10,3 +10,4 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `gpu_row_reduce.html`: Reduce Matrix with `gpu.js`
 * `uniform_test.html`: Animation with Uniforms
 * `webgl_min.html`: Minimum Setup
+* `vertex_color_min`: Vertex Colors
