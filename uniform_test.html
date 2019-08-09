@@ -1,0 +1,60 @@
+<html> <body> <canvas id='canvas' style='position:fixed; top:0%; left:0%; width:100%;'> </canvas> 
+<script>
+/*---------------------- Canvas/Shader ------------------------------*/
+var canvas = document.getElementById('canvas');
+var gl     = canvas.getContext('webgl');
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`
+        attribute vec2 coords;
+        varying vec2 pos;
+        void main(void) {
+            pos = coords;            
+            gl_Position = vec4(coords, 0, 1);}`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+        precision mediump float;
+        varying vec2 pos;
+        uniform float u_val;
+        void main(void) {
+        	float len = pos.x*pos.x + pos.y*pos.y;
+        	float r = abs(cos(8.*len));
+        	float g = abs(sin(9.*len));
+        	float b = abs(cos(10.*len) + sin(11.*len));
+            gl_FragColor = vec4(r, g, b, u_val);}`); 
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+/*--------------------------- Buffers/Data -------------------------*/
+var vertices = new Float32Array([-1,-1, 1,-1, 1,1, -1,1]);
+var vertex_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+var indices = new Uint16Array([0,1,2, 2,3,0]);
+var index_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+var coord = gl.getAttribLocation(shader_program, "coords");
+    gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0); 
+    gl.enableVertexAttribArray(coord);
+
+var u_val_loc = gl.getUniformLocation(shader_program, "u_val");
+/*----------------------------- Run -------------------------------*/
+let iter = 0;
+function loop() {
+
+    gl.uniform1f(u_val_loc, Math.abs(Math.cos(iter/200))/1.4);
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+    iter++;
+    requestAnimationFrame(loop);}
+
+loop();
+
+</script> </body> </html>
