@@ -1,0 +1,73 @@
+<html> <body> <script src = 'turbo.js'> </script> <script>
+
+/*------------------- Dim, Matrix, Buffer -------------------*/
+var dim    = 4;
+var matrix = new Float32Array(dim*dim);
+var buffer = turbojs.alloc(dim);
+
+for (let i = 0; i < dim*dim; i++) {
+	matrix[i] = Math.floor(100*Math.random());}
+
+for (var i = 0; i < dim; i++) {
+	buffer.data[4*i]   = 1;
+	buffer.data[4*i+1] = 2;
+	buffer.data[4*i+2] = 3;
+	buffer.data[4*i+3] = 4; }
+
+// /*---------------------------- Test -------------------------*/
+for (let i = 0; i < 5; i++) {
+	turbojs.run(buffer, `
+	void main(void) {
+		commit(read()+1.);}`);
+	printbuff();}
+
+var test_array = [9, 2, 3, 4];
+
+for (let i = 0; i < 4; i++) {
+	turbojs.run(buffer, `
+		void main(void) {
+			float v0 = ${test_array[i]}.;
+			float v1 = read().g;
+			float v2 = read().b;
+			float v3 = read().a;
+			commit(vec4(v0, v1, v2, v3));}`);
+	printbuff();}
+
+/*-------------------------- Functions --------------------------*/
+function matrix_to_buffer(row0) {
+	let row1 = row0 + 1;
+	let row2 = row0 + 2;
+	let row3 = row0 + 3;
+	for (let col = 0; col < dim; col++){
+		buffer.data[4*col  ] = matrix[dim*row0+col];
+		buffer.data[4*col+1] = matrix[dim*row1+col];
+		buffer.data[4*col+2] = matrix[dim*row2+col];
+		buffer.data[4*col+3] = matrix[dim*row3+col];}}
+
+function buffer_to_matrix(row0) {
+	let row1 = row0 + 1;
+	let row2 = row0 + 2;
+	let row3 = row0 + 3;
+	for (let col = 0; col < dim; col++) {
+		matrix[dim*row0+col] = buffer.data[4*col  ];
+		matrix[dim*row1+col] = buffer.data[4*col+1];
+		matrix[dim*row2+col] = buffer.data[4*col+2];
+		matrix[dim*row3+col] = buffer.data[4*col+3];}}
+
+function printmat() {
+	let string = 'Matrix: <br/>';
+	for (let row = 0; row < dim; row++) {
+		string+='<br>';
+		for (let col = 0; col < dim; col++){
+			string+= matrix[dim*row+col] + ' , ';}}
+	document.write(string+'<br/><br/>');}
+
+function printbuff() {
+	let string = 'Buffer: <br/>';
+	for (let row = 0; row < dim; row++) {
+		string += '<br/>';
+		for (let col = 0; col < dim; col++) {
+			string+= buffer.data[4*col+row] + ',';}}
+	document.write(string+'<br/> <br/>');}
+
+</script> </body> </html>
