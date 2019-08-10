@@ -11,3 +11,4 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `uniform_test.html`: Animation with Uniforms
 * `webgl_min.html`: Minimum Setup
 * `color_vertex_min`: Vertex Colors
+* `turbo_test.html`: Setting/Getting with `turbo.js`
