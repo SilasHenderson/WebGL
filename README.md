@@ -14,4 +14,5 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `turbo_test.html`: Setting/Getting with `turbo.js`
 * `mouse_sand.html`: Texture Mouse Input
 * `texture.html`: Minimum Texture
-* `texture_anim.html:` Texture Animation
+* `texture_anim.html`: Texture Animation
+* `shader_2d.html`: Matrix Uniform
