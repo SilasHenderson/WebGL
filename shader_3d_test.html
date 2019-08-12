@@ -1,0 +1,99 @@
+<!-- uniform_matrix_test - - Document - - - - - - - - - &# -->
+<html> <body> <canvas id='canvas' style=
+    'position:fixed; top:0%; left:0%; width:100%;'> </canvas> 
+<script>
+var canvas = document.getElementById('canvas');
+var gl     = canvas.getContext('webgl');
+
+/*---------------------- Shader ----------------------------*/
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`
+        attribute vec3 vertex;
+        uniform mat4 matrix;
+        void main() {
+            vec4 pos4 = matrix*vec4(vertex,1.);
+            gl_Position = vec4(pos4.xyz,1.);
+            }`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+        precision mediump float;
+        void main() {
+            gl_FragColor = vec4(.3, .4, .5, .8);}`);
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+
+/*------------------------------ Data ---------------------------*/
+var vertex_array = new Float32Array([
+    0,0,0, 1,0,0, 1,1,0, 0,0,0, 1,1,0, 0,1,0]);
+
+var vertex_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertex_array, gl.STATIC_DRAW);
+
+var vertex_attrib = gl.getAttribLocation(shader_program, 'vertex');
+    gl.vertexAttribPointer(vertex_attrib, 3, gl.FLOAT, false, 0, 0); 
+    gl.enableVertexAttribArray(vertex_attrib);
+
+var matrix_uniform=gl.getUniformLocation(shader_program,'matrix');
+
+var X  = 0;  var X_vel = 0;
+var Y  = 0;  var Y_vel = 0;
+var Z  = 0;  var Z_vel = 0;
+var az = 0;  var az_vel = 0;
+document.onkeydown = (e) => {
+    if (e.key == 'ArrowUp')   { Z_vel  =  .01; }
+    if (e.key == 'ArrowDown') { Z_vel  = -.01; }
+    if (e.key == 'ArrowLeft') { X_vel  =  .01; }
+    if (e.key == 'ArrowRight'){ X_vel  = -.01; }
+    if (e.key == 'Enter')     { az_vel =  .01; }
+    if (e.key == 'Shift')     { az_vel = -.01; } }
+document.onkeyup = () => { X_vel = Y_vel = Z_vel = az_vel = 0;}
+
+/*------------------------------- Draw -----------------------------*/
+function loop() {
+    X  += X_vel;
+    Y  += Y_vel;
+    Z  += Z_vel;
+    az += az_vel;
+    gl.uniformMatrix4fv(matrix_uniform, false, matrix(X, Y, Z,az));
+    gl.bufferData(gl.ARRAY_BUFFER, vertex_array, gl.STATIC_DRAW);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);   
+    requestAnimationFrame(loop);} 
+
+loop();
+
+/*------------------------------ Matrix Fcn ---------------------*/
+function matrix(x,y,z,az) {
+    let   zz =  1 + (.0001 + Math.abs(z));
+    let c_az = Math.cos(az);    
+    let s_az = Math.sin(az);
+    return new Float32Array([
+        c_az/zz,-s_az/zz, 0, 0,
+        s_az/zz, c_az/zz, 0, 0, 
+              0,       0, 1, 0, 
+              x,       y, z, 1]);}
+
+function cube_data(x,y,z, l,w,h) {
+    // -- not actual cube -- 
+    return new Float32Array([
+         x-l,y-w,z-h,   x-l,y-w,z+h,   x-l,y+w,z+h,
+         x-l,y-w,z-h,   x-l,y+w,z-h,   x-l,y+w,z+h,
+         x+l,y-w,z-h,   x-l,y-w,z+h,   x-l,y+w,z+h,
+         x+l,y-w,z-h,   x-l,y+w,z-h,   x-l,y+w,z+h,
+         x+l,y+w,z-h,   x-l,y-w,z+h,   x-l,y+w,z+h,
+         x+l,y+w,z-h,   x-l,y+w,z-h,   x-l,y+w,z+h,
+         x+l,y+w,z+h,   x-l,y-w,z+h,   x-l,y+w,z+h,
+         x+l,y+w,z+h,   x-l,y+w,z-h,   x-l,y+w,z+h,
+         x+l,y+w,z+h,   x-l,y-w,z+h,   x-l,y+w,z+h,
+         x+l,y+w,z+h,   x-l,y+w,z-h,   x-l,y+w,z+h,
+         x+l,y+w,z+h,   x-l,y-w,z+h,   x-l,y+w,z+h,
+         x+l,y+w,z+h,   x-l,y+w,z-h,   x-l,y+w,z+h]);} 
+
+</script> </body> </html>    
