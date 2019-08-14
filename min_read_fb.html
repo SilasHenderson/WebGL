@@ -1,0 +1,81 @@
+<html> <body> 
+<div id='div' style='top:0%; height:10%;'> </div>
+<canvas id='canvas' style='width:256; height:256;'> </canvas> 
+
+<script>
+var canvas = document.getElementById('canvas');
+var gl     = canvas.getContext('webgl');
+    gl.getExtension('OES_texture_float');
+    gl.viewport(0,0,256,256);
+
+/*---------------------- Shader ----------------------------*/
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`
+        attribute vec2 vertex_attrib;
+        attribute vec2 uv_attrib;
+        varying vec2 uv_pos;
+        void main(void) {
+            uv_pos = uv_attrib;
+            gl_Position = vec4(vertex_attrib, 0., 1.);}`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+        precision highp float;
+        uniform sampler2D tex_uniform;
+        varying vec2 uv_pos;
+        void main(void) {
+            vec4 rgba = texture2D(tex_uniform, uv_pos);
+            gl_FragColor = vec4(rgba.rgb, 1);}`); 
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+
+var tex_unifom    = gl.getUniformLocation(shader_program, 'tex_unifom');
+var vertex_attrib = gl.getAttribLocation( shader_program, 'vertex_attrib');
+var uv_attrib     = gl.getAttribLocation( shader_program, 'uv_attrib');
+
+gl.enableVertexAttribArray(vertex_attrib);
+gl.enableVertexAttribArray(uv_attrib);
+
+/*------------------------ Surface Buffer -------------------------*/
+var vertex_array = new Float32Array(
+    [-1,1,0,1, -1,-1,0,0, 1,1,1,1,  1,-1,1,0]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, vertex_array, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vertex_attrib, 2, gl.FLOAT, false, 4*4, 0); 
+    gl.vertexAttribPointer(uv_attrib, 2, gl.FLOAT, false, 4*4, 2*4); 
+    
+/*----------------------------- Texture ------------------------*/
+var tex_dim = 256;
+var tex_array = new Float32Array(4*tex_dim*tex_dim);
+for (let i = 0; i < 4*tex_dim*tex_dim; i++) {
+    tex_array[i] = Math.random();}
+
+var tex_object = gl.createTexture();
+    gl.bindTexture( gl.TEXTURE_2D, tex_object);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+/*------------------------------- Draw -----------------------------*/
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+           tex_dim, tex_dim, 0, gl.RGBA, gl.FLOAT, tex_array);
+     
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+/*------------------- Read Frame Buffer Test -------------------------*/
+var frame_data = new Float32Array(4*tex_dim*tex_dim);
+
+gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+gl.framebufferTexture2D(gl.FRAMEBUFFER, 
+    gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_object, 0);
+gl.readPixels(0,0,tex_dim,tex_dim, gl.RGBA, gl.FLOAT, frame_data);
+
+div.innerHTML = frame_data[0];
+
+</script> </body> </html>
