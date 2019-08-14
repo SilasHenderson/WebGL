@@ -18,3 +18,4 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `shader_2d.html`: Matrix Uniform
 * `shader_3d_test.html:` Mat4 Uniform test
 * `min_surface.html`: Float Texture with Interleaved uv's
+* `min_read_fb.html`: Read pixel from frame buffer
