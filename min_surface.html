@@ -1,0 +1,86 @@
+<html> <body> <canvas id='canvas' style=
+	'width:256; height:256;'> </canvas> <script>
+var canvas = document.getElementById('canvas');
+var gl     = canvas.getContext('webgl');
+    gl.getExtension('OES_texture_float');
+
+/*---------------------- Shader ----------------------------*/
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`
+        attribute vec2 vertex_attrib;
+        attribute vec2 uv_attrib;
+        varying vec2 uv_pos;
+        void main(void) {
+            uv_pos = uv_attrib;
+            gl_Position = vec4(vertex_attrib, 0., 1.);}`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+        precision highp float;
+        uniform sampler2D tex_uniform;
+        varying vec2 uv_pos;
+        void main(void) {
+            vec4 rgba = texture2D(tex_uniform, uv_pos);
+            gl_FragColor = vec4(rgba.rgb, 1);}`); 
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+
+/*--------------------------- Vertices -------------------------*/
+var vertex_array = new Float32Array(
+    [-1,1,0,1, -1,-1,0,0, 1,1,1,1,  1,-1,1,0]);
+var vertex_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertex_array, gl.STATIC_DRAW);
+
+var vertex_attrib = gl.getAttribLocation(shader_program, 'vertex_attrib');
+    gl.vertexAttribPointer(vertex_attrib, 2, gl.FLOAT, false, 4*4, 0); 
+    gl.enableVertexAttribArray(vertex_attrib);
+
+var uv_attrib = gl.getAttribLocation(shader_program, 'uv_attrib');
+    gl.vertexAttribPointer(uv_attrib, 2, gl.FLOAT, false, 4*4, 2*4); 
+    gl.enableVertexAttribArray(uv_attrib);
+
+/*----------------------------- Texture ------------------------*/
+var tex_dim = 256;
+
+var tex_array = new Float32Array(4*tex_dim*tex_dim);
+for (let i = 0; i < tex_array.length; i++) {
+    tex_array[i] = Math.random();}
+
+var tex_object = gl.createTexture();
+    gl.bindTexture( gl.TEXTURE_2D, tex_object);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+var tex_unifom = gl.getUniformLocation(shader_program, 'tex_unifom');
+
+/*------------------------------- Draw -----------------------------*/
+function loop() {
+    for (let i = 0; i < tex_dim; i++) {
+        let val = Math.random();
+        for (let j = 0; j < tex_dim; j++) {
+            tex_array[4*(tex_dim*i+j)  ] = val;
+            tex_array[4*(tex_dim*i+j)+1] = val;
+            tex_array[4*(tex_dim*i+j)+2] = val;
+            tex_array[4*(tex_dim*i+j)+3] = val; }}
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+               tex_dim, tex_dim, 0, gl.RGBA, gl.FLOAT, tex_array);
+    
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    requestAnimationFrame(loop);}
+
+loop();
+
+
+
+</script> </body> </html>
