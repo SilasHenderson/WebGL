@@ -17,3 +17,4 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `texture_anim.html`: Texture Animation
 * `shader_2d.html`: Matrix Uniform
 * `shader_3d_test.html:` Mat4 Uniform test
+* `min_surface.html`: Float Texture with Interleaved uv's
