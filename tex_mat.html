@@ -1,0 +1,120 @@
+<html> <body> <script>
+// TexMat &#
+/*---------------------------- Options ---------------------------*/
+var width  = 10;
+var height = 10;
+
+/*---------------------------- Document -------------------------*/
+var canvas = document.createElement('canvas');
+    canvas.width  = width;
+    canvas.height = height;
+
+var gl = canvas.getContext('webgl',{depth:false});
+    gl.getExtension('OES_texture_float');
+    gl.viewport(0, 0, width, height);
+
+/*---------------------------- Shader ----------------------------*/
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`
+        attribute vec2 vertex_attrib;
+        attribute vec2 uv_attrib;
+        varying vec2 uv;
+        void main(void) {
+            uv = uv_attrib;
+            gl_Position = vec4(vertex_attrib, 0., 1.);}`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+        precision highp float;
+        uniform sampler2D tex;
+        varying vec2 uv;
+        float w = ${width}.;
+        float h = ${height}.;
+
+        float get(float i, float j) {
+            vec4 val = texture2D(tex, vec2(i/w, j/h));
+            return val.x;}
+    
+        void main(void) {
+            gl_FragColor = vec4(uv.x, uv.y, 0, 1.);
+            //vec4 rgba = texture2D(tex, uv_pos);
+            //gl_FragColor = vec4(rgba.rgb, 1.);
+            }`); 
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+
+var tex_unifom    = gl.getUniformLocation(shader_program,'tex');
+var vertex_attrib = gl.getAttribLocation( shader_program,'vertex_attrib');
+var uv_attrib     = gl.getAttribLocation( shader_program,'uv_attrib');
+
+gl.enableVertexAttribArray(vertex_attrib);
+gl.enableVertexAttribArray(uv_attrib);
+
+/*--------------------------- Surface -------------------------------*/
+var vertex_array = new Float32Array(
+    [-1,1,0,1, -1,-1,0,0, 1,1,1,1,  1,-1,1,0]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, vertex_array, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vertex_attrib, 2, gl.FLOAT, false, 4*4, 0); 
+    gl.vertexAttribPointer(uv_attrib,     2, gl.FLOAT, false, 4*4, 2*4); 
+ 
+var tex_object = gl.createTexture();
+    gl.bindTexture(  gl.TEXTURE_2D, tex_object);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+var frame_data = new Float32Array(4*width*height).fill(0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, 
+        gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_object, 0);
+
+/*-------------------------- Draw/Read -------------------------------*/
+var tex_array = random(4*width*height);
+
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+              width, height, 0, gl.RGBA, gl.FLOAT, tex_array);
+    
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+gl.readPixels(0,0, width,height, gl.RGBA, gl.FLOAT, frame_data);
+
+document.write('Texture-Matrix: '+width+' by '+height+'<br><br>');
+
+document.write('x(uv) coords for each element: <br>');
+print(frame_data, 0);
+
+document.write('<br>y(uv) coords for each element: <br>');
+print(frame_data, 1);
+
+document.write('<br> complete pixel data: <br>');
+list(frame_data);
+
+/*-------------------------- Utility Functions ------------------------*/
+function random(size) {
+    let new_array = new Float32Array(size);
+    for (let i = 0; i < size; i++) {
+        new_array[i] = Math.random();}
+    return new_array;}
+
+function print(data, offset = 0) {
+    let dim = Math.sqrt(data.length/4);
+    let string = '';
+    for (let i = 0; i < dim; i++) {
+        for (let j = 0; j < dim; j++) {
+            string += data[4*(dim*i+j)+offset].toFixed(2) + ' , ';}
+        string += '<br/>';}
+    document.write(string);}
+
+function list(data) {
+    let string = '';
+    for (let i = 0; i < data.length; i++) {
+        string += data[i].toFixed(4) + '<br>';}
+    document.write(string);}
+
+</script> </body> </html>
