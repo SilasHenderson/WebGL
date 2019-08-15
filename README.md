@@ -15,7 +15,8 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `mouse_sand.html`: Texture Mouse Input
 * `texture.html`: Minimum Texture
 * `texture_anim.html`: Texture Animation
-* `shader_2d.html`: Matrix Uniform
+* `shader_2d.html`: Mat3 Uniform test
 * `shader_3d_test.html:` Mat4 Uniform test
 * `min_surface.html`: Float Texture with Interleaved uv's
 * `min_read_fb.html`: Read pixel from frame buffer
+* `tex_mat.html`: Display uv coords for texture
