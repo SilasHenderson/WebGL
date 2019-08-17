@@ -1,0 +1,70 @@
+<html> <body> <script>
+
+var W = 500;
+var H = 200;
+var canvas = document.createElement('canvas');
+    canvas.width  = W;
+    canvas.height = H;
+    document.body.appendChild(canvas);
+var gl = canvas.getContext('webgl2');
+	// gl.getExtension('EXT_color_buffer_float');
+
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`#version 300 es
+		in vec2 pos; 
+		in vec2 UV; 
+		out vec2 uv;
+
+        void main(void) {
+			uv = UV;
+         	gl_Position = vec4(pos, 0., 1.);}`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `#version 300 es
+		precision mediump float;
+		
+		uniform sampler2D tex;
+		in vec2 uv;					
+		out vec4 color;
+
+	    void main(void) {    
+        	color = texture(tex,uv);}`); 
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+
+var vertex_attrib = gl.getAttribLocation( shader_program,'pos');
+var uv_attrib     = gl.getAttribLocation( shader_program,'UV');
+    gl.enableVertexAttribArray(vertex_attrib);
+    gl.enableVertexAttribArray(uv_attrib);
+
+var vertex_array = new Float32Array(
+    [-1,1,0,1, -1,-1,0,0, 1,1,1,1,  1,-1,1,0]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, vertex_array, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vertex_attrib, 2, gl.FLOAT, false, 4*4, 0); 
+    gl.vertexAttribPointer(uv_attrib,     2, gl.FLOAT, false, 4*4, 2*4); 
+
+var tex_uniform = gl.getUniformLocation( shader_program, 'tex'); 
+var tex_obj = gl.createTexture();
+    gl.bindTexture(  gl.TEXTURE_2D, tex_obj);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+/*------------------------------------------------------------------*/
+var tex_data = new Float32Array(4*W*H);
+for (let i = 0; i < 4*W*H; i++) {
+	tex_data[i] = Math.random();}
+
+gl.texImage2D(gl.TEXTURE_2D,
+	0, gl.RGBA32F, W, H, 0, gl.RGBA, gl.FLOAT, tex_data);
+
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+</script> </body> </html>
