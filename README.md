@@ -20,3 +20,4 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `min_surface.html`: Float Texture with Interleaved uv's
 * `min_read_fb.html`: Read pixel from frame buffer
 * `tex_mat.html`: Display uv coords for texture
+* `webgl2tex.html`: Texture with webgl **2**
