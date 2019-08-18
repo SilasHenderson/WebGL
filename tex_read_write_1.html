@@ -1,0 +1,144 @@
+<html> <body> <script>
+// TexMat &#
+/*---------------------------- Options ---------------------------*/
+var width  = 10;
+var height = 10;
+var pivot_val = 4;
+
+/*---------------------------- Document -------------------------*/
+var canvas = document.createElement('canvas');
+    canvas.width  = width;
+    canvas.height = height;
+
+var gl = canvas.getContext('webgl');
+var ext = gl.getExtension('WEBGL_draw_buffers');
+    gl.getExtension('OES_texture_float');
+    gl.viewport(0, 0, width, height);
+
+/*---------------------------- Shader ----------------------------*/
+var vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`
+        attribute vec2 vertex_attrib;
+        attribute vec2 uv_attrib;
+        varying vec2 uv;
+        void main(void) {
+            uv = uv_attrib;
+            gl_Position = vec4(vertex_attrib, 0., 1.);}`);
+    gl.compileShader(vertex_shader);
+
+var fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+        precision mediump float;
+        uniform float pivot;
+        uniform sampler2D tex;
+        varying vec2 uv;
+        float I = 0.;
+        float dw  = 1.0/${width}.;
+        float dh  = 1.0/${height}.;
+        float get(float i, float j) {
+            vec4 val = texture2D(tex, vec2( (j+.5)*dh, (i+.5)*dw ));
+            return val.x;}
+        void set(float val) { gl_FragColor = vec4(val, 0, 0, 0); }
+
+        void main(void) {  
+             // float out = get(pivot, pivot);
+             //gl_FragColor = vec4(get(pivot,pivot),0,0,0);
+             I = uv.x;
+             if (uv.y > .5) {I = get(pivot, pivot);}
+             gl_FragColor = vec4(I, 0, 0, 0);
+         }`); 
+    gl.compileShader(fragment_shader);
+
+var shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+
+var tex_uniform   = gl.getUniformLocation(shader_program,'tex');
+var pivot_uniform = gl.getUniformLocation(shader_program, 'pivot'); 
+var vertex_attrib = gl.getAttribLocation( shader_program,'vertex_attrib');
+var uv_attrib     = gl.getAttribLocation( shader_program,'uv_attrib');
+
+/*--------------------------- Surface -------------------------------*/
+var vertex_array = new Float32Array(
+    [-1,1,0,1, -1,-1,0,0, 1,1,1,1,  1,-1,1,0]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, vertex_array, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(vertex_attrib);
+    gl.enableVertexAttribArray(uv_attrib);
+    gl.vertexAttribPointer(vertex_attrib, 2, gl.FLOAT, false, 4*4, 0); 
+    gl.vertexAttribPointer(uv_attrib,     2, gl.FLOAT, false, 4*4, 2*4); 
+
+var frame_buffer_0 = gl.createFramebuffer();
+var tex_data_0 = lin4space(width*height);
+var tex_obj_0 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(  gl.TEXTURE_2D, tex_obj_0);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                  width, height, 0, gl.RGBA, gl.FLOAT, null);
+
+var frame_buffer_1 = gl.createFramebuffer();
+var tex_data_1 = new Float32Array(4*width*height).fill(1);
+var tex_obj_1 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(  gl.TEXTURE_2D, tex_obj_1);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                  width, height, 0, gl.RGBA, gl.FLOAT, null);
+
+/*-------------------------- Draw/Read -------------------------------*/
+gl.uniform1f(pivot_uniform, pivot_val);
+gl.activeTexture(gl.TEXTURE0);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+              width, height, 0, gl.RGBA, gl.FLOAT, tex_data_0);
+gl.bindFramebuffer(gl.FRAMEBUFFER, frame_buffer_0);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, 
+        gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_obj_1, 0);
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+gl.readPixels(0,0, width,height, gl.RGBA, gl.FLOAT, tex_data_1);
+
+document.write('pivot: ' + pivot_val + '<br/>');
+document.write('tex_data_0 (red) <br/>');    print(tex_data_0, 0); 
+document.write('tex_data_1 (red) <br/>');    print(tex_data_1, 0);
+
+document.write(
+   'Texture-Matrix: '+ width + ' by ' + height + 
+    '<br/> tex_data_0(all): ' + tex_data_0 + 
+    '<br/> tex_data_1(all): ' + tex_data_1);
+
+/*-------------------------- Utility Functions ------------------------*/
+function random(size) {
+    let new_array = new Float32Array(size);
+    for (let i = 0; i < size; i++) {
+        new_array[i] = Math.random();}
+    return new_array;}
+
+function print(data, offset = 0) {
+    let dim = Math.sqrt(data.length/4);
+    let string = '';
+    for (let i = 0; i < dim; i++) {
+        for (let j = 0; j < dim; j++) {
+            string += data[4*(dim*i+j)+offset].toFixed(2) + ' , ';}
+        string += '<br/>';}
+    document.write(string + '<br/>');}
+
+function list(data) {
+    let string = '';
+    for (let i = 0; i < data.length; i++) {
+        string += data[i].toFixed(4) + '<br>';}
+    document.write(string);}
+
+function lin4space(size) {
+    let data = [];
+    for (let i = 0; i < size; i++) {
+        data.push(i,i,i,i);}
+    return new Float32Array(data);}
+
+</script> </body> </html>
