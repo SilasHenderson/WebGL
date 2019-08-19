@@ -25,7 +25,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `tex_read_write_1.html`: ... add ( functions + if/else ) in fragment shader
 * `clear_pivot_0.html`: Shader fcn to clear under pivot
 * `mini_shader.html`: Template for Fragment Shader test environment
-* `mini_shader_plus.html`: -- interactive version
+* `mini_shader_plus.html`: ... interactive version
 
 *to do:*
 
