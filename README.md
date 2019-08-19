@@ -23,7 +23,8 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `webgl2tex.html`: Texture with webgl **2**
 * `tex_read_write_0.html`: Read / Write to textures
 * `tex_read_write_1.html`: ... add ( functions + if/else ) in fragment shader
-* `clear_pivot_0.html`: Shader fcn to clear under pivot.
+* `clear_pivot_0.html`: Shader fcn to clear under pivot
+* `mini_shader.html`: Template for Fragment Shader test environment
 
 *to do:*
 
