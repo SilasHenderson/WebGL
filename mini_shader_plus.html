@@ -1,0 +1,132 @@
+<!DOCTYPE html> <html> <head> <style> 
+    body {  background-color:#333333;}
+    .key {  top:0%;         height:5%;      color:#bbbbbb;   
+            width:10%;       position:fixed; background-color:#333333;
+            border:none;}
+    .key:hover { background-color: #334433; }
+    .key:active{ background-color: #333344; } </style> </head> <body> 
+
+<button class="key" onmousedown="_save()" style="left:0%;">Save</button>
+<button class="key" onmousedown="_open()" style="left:10%;">Open</button>
+<button class="key" onmousedown="_new()"  style="left:20%;">New</button>
+<button class="key" onmousedown="_info()" style="left:30%">Info</button>
+
+<textarea id='paper' spellcheck = 'false'
+    style='top:5%;  height:95%; position:fixed; background-color:#dde3ee;
+           left:0%; width:50%;  font-size:18;'> </textarea>
+
+<canvas id='canvas' 
+    style='top:5%;    height:95%;  background-color:#cccccc;
+           left:50%;  width:50%;   position:fixed;'> </canvas> <script>
+
+let paper  = document.getElementById('paper');
+let canvas = document.getElementById('canvas');
+    let W  = canvas.getBoundingClientRect().width;
+    let H  = canvas.getBoundingClientRect().height;
+
+let gl = canvas.getContext('webgl');
+    gl.getExtension('OES_texture_float');
+
+function shader_make(fragment_code) {
+    let vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertex_shader,`
+            attribute vec2 pos_a;
+            attribute vec2 uv_a;
+            varying vec2 uv;
+            void main(void) {
+                uv = uv_a;
+                gl_Position = vec4(pos_a, 0., 1.);}`);
+        gl.compileShader(vertex_shader);
+    
+    let fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragment_shader, fragment_code);
+        gl.compileShader(fragment_shader);
+    
+    let shader_program = gl.createProgram();
+        gl.attachShader(shader_program, vertex_shader);
+        gl.attachShader(shader_program, fragment_shader);
+        gl.linkProgram(shader_program); gl.useProgram(shader_program);
+    
+    let pos_a = gl.getAttribLocation(shader_program,'pos_a');
+    let uv_a  = gl.getAttribLocation(shader_program,'uv_a');
+    let pos_uv_array = new Float32Array(
+        [-1,1,0,1, -1,-1,0,0, 1,1,1,1,  1,-1,1,0]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, pos_uv_array, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(pos_a);
+        gl.enableVertexAttribArray(uv_a);
+        gl.vertexAttribPointer(pos_a, 2, gl.FLOAT,false, 4*4,   0); 
+        gl.vertexAttribPointer(uv_a,  2, gl.FLOAT,false, 4*4, 2*4);
+
+    return shader_program;}
+
+_new();
+
+/*----------------------- Shift/Enter to Run -----------------------*/
+let _shiftDown = 0;
+let _enterDown = 0;
+let _t0;
+document.onkeydown = function(e) {
+    if (e.key == 'Shift') { _shiftDown = 1;}
+    if (e.key == 'Enter') { _enterDown = 1;
+        if ( _shiftDown == 1 && _enterDown == 1) {
+            _t0 = new Date().getTime();
+            eval(paper.value);
+            e.preventDefault();}}}
+
+document.onkeyup = function(e) {
+    if (e.key == 'Shift') { _shiftDown = 0;}
+    if (e.key == 'Enter') { _enterDown = 0;}}
+
+function toc() {return (new Date().getTime() - _t0)/1000; }
+
+/*--------------------- Button Functions ----------------*/          
+function _save() { localStorage.script = paper.value;}
+function _open() { paper.value = localStorage.script;}             
+function _info() { paper.value = `
+This is a test-environment for GLSL Fragment Shaders.
+It pre-builds the triangle / vertex shader combo that
+is useful for gpgpu.  Each pixel in the canvas is 
+computed in parallel and has access to its uv coordinates.
+
+To use, write some javascript in this box and 
+then press (shift_enter) to run it. 
+
+-------------------------------
+Function: shader_program()  
+
+Vertex and UV coords for 2 triangles are defined
+in an interleaved array and passed to vertex shader.
+Vertex coordinates span the GL drawing surface( -1 to 1).
+UV coordinates span the a 'texture' drawing area (0 to 1).
+Vertex shader passes uv coordinates to fragment shader.
+
+Press cntrl+u to see source code`;}
+
+function _new()  { 
+let scripts  = [];
+scripts.push(`// Press (Shift Enter) to run
+var fragment_code = \`
+    precision mediump float;
+    varying vec2 uv;
+    uniform float t;
+
+    void main(void) {
+        float dist   = length(uv - .5);
+        float ripple = abs(cos(500.*dist*t + t));
+        gl_FragColor = vec4(t*uv.x, uv.y, ripple,1);}\`;
+
+let shader = shader_make(fragment_code);
+
+let t  = gl.getUniformLocation(shader, 't');
+
+function loop() {
+   gl.uniform1f(t, Math.sin(toc()));
+   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+   requestAnimationFrame(loop);}
+
+loop();`);
+
+paper.value = scripts[Math.floor(Math.random()*scripts.length)];}
+
+ </script> </body> </html>       
