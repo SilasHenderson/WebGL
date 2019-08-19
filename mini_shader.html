@@ -1,0 +1,55 @@
+<html> <body>
+<style> body{ background-color:#444444;} </style>
+<textarea id='paper'
+    style='top:7%;  height:93%; position:fixed; background-color:#dde3ee;
+           left:0%; width:40%;  font-size:18;'> </textarea>
+
+<canvas id='canvas' 
+    style='top:7%;    height:93%;  background-color:#cccccc;
+           left:40%;  width:60%;   position:fixed;'> </canvas> <script>
+
+let paper  = document.getElementById('paper');
+let canvas = document.getElementById('canvas');
+    let W  = canvas.getBoundingClientRect().width;
+    let H  = canvas.getBoundingClientRect().height;
+
+let gl = canvas.getContext('webgl');
+    gl.getExtension('OES_texture_float');
+
+let vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertex_shader,`
+        attribute vec2 pos_a;
+        attribute vec2 uv_a;
+        varying vec2 uv;
+        void main(void) {
+            uv = uv_a;
+            gl_Position = vec4(pos_a, 0., 1.);}`);
+        gl.compileShader(vertex_shader);
+    
+let fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragment_shader, `
+        precision mediump float;
+        varying vec2 uv;
+        void main(void) {  
+            gl_FragColor = vec4(uv.x, uv.y, 0.,1);}`);
+        gl.compileShader(fragment_shader);
+    
+let shader_program = gl.createProgram();
+    gl.attachShader(shader_program, vertex_shader);
+    gl.attachShader(shader_program, fragment_shader);
+    gl.linkProgram(shader_program); gl.useProgram(shader_program);
+    
+let pos_a = gl.getAttribLocation(shader_program,'pos_a');
+let uv_a  = gl.getAttribLocation(shader_program,'uv_a');
+let pos_uv_array = new Float32Array(
+    [-1,1,0,1, -1,-1,0,0, 1,1,1,1,  1,-1,1,0]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, pos_uv_array, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(pos_a);
+    gl.enableVertexAttribArray(uv_a);
+    gl.vertexAttribPointer(pos_a, 2, gl.FLOAT,false, 4*4,   0); 
+    gl.vertexAttribPointer(uv_a,  2, gl.FLOAT,false, 4*4, 2*4);
+
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+ </script> </body> </html>       
