@@ -1,0 +1,120 @@
+<!-- - - mini-shader (webgl2) - - - - - - - - - - - - $:\^$# - -->
+<!DOCTYPE html> <html> <head> <style> 
+    body {  background-color:#333333;}
+    .key {  top:0%;         height:5%;      color:#bbbbbb;   
+            width:10%;       position:fixed; background-color:#333333;
+            border:none;}
+    .key:hover { background-color: #334433; }
+    .key:active{ background-color: #333344; } </style> </head> <body> 
+
+<button class="key" onmousedown="_save()" style="left:0%;">Save</button>
+<button class="key" onmousedown="_open()" style="left:10%;">Open</button>
+<button class="key" onmousedown="_new()"  style="left:20%;">New</button>
+<button class="key" onmousedown="_info()" style="left:30%">Info</button>
+
+<textarea id='paper' spellcheck = 'false'
+    style='top:5%;  height:95%; position:fixed; background-color:#dde3ee;
+           left:0%; width:50%;  font-size:18;'> </textarea>
+
+<canvas id='canvas' 
+    style='top:5%;    height:95%;  background-color:#cccccc;
+           left:50%;  width:50%;   position:fixed;'> </canvas> <script>
+
+let paper  = document.getElementById('paper');
+let canvas = document.getElementById('canvas');
+    let W  = canvas.getBoundingClientRect().width;
+    let H  = canvas.getBoundingClientRect().height;
+
+let gl = canvas.getContext('webgl2');
+
+function shader_make(fragment_code) {
+    let vertex_shader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertex_shader,`#version 300 es
+            layout(location=0) in vec2 pos_a;
+            layout(location=1) in vec2 uv_a;
+            out vec2 uv;
+            void main(void) {
+                uv = uv_a;
+                gl_Position = vec4(pos_a, 0., 1.);}`);
+        gl.compileShader(vertex_shader);
+    
+    let fragment_shader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragment_shader, fragment_code);
+        gl.compileShader(fragment_shader);
+    
+    let shader_program = gl.createProgram();
+        gl.attachShader(shader_program, vertex_shader);
+        gl.attachShader(shader_program, fragment_shader);
+        gl.linkProgram(shader_program); gl.useProgram(shader_program);
+    
+    let pos_uv_array = new Float32Array(
+        [-1,1,0,1, -1,-1,0,0, 1,1,1,1,  1,-1,1,0]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, pos_uv_array, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT,false, 4*4,   0); 
+        gl.vertexAttribPointer(1, 2, gl.FLOAT,false, 4*4, 2*4);
+
+    return shader_program;}
+
+_new();
+
+/*----------------------- Shift/Enter to Run -----------------------*/
+let _shiftDown = 0;
+let _enterDown = 0;
+let _t0;
+document.onkeydown = function(e) {
+    if (e.key == 'Shift') { _shiftDown = 1;}
+    if (e.key == 'Enter') { _enterDown = 1;
+        if ( _shiftDown == 1 && _enterDown == 1) {
+            _t0 = new Date().getTime();
+            eval(paper.value);
+            e.preventDefault();}}}
+
+document.onkeyup = function(e) {
+    if (e.key == 'Shift') { _shiftDown = 0;}
+    if (e.key == 'Enter') { _enterDown = 0;}}
+
+function toc() {return (new Date().getTime() - _t0)/1000; }
+
+/*--------------------- Button Functions ----------------*/          
+function _save() { localStorage.script = paper.value;}
+function _open() { paper.value = localStorage.script;}             
+function _info() { paper.value = `heyyo!`;}
+
+function _new()  { 
+let scripts  = [];
+scripts.push(
+`// Press (Shift Enter) to run
+
+/*------- Fragment Shader ------*/
+let fragment_code = \`#version 300 es
+    precision mediump float;
+    in vec2 uv;
+    out vec4 color;
+    uniform float t;
+
+    float ncos(float a) {
+        float outpt = .5 + .5*cos(a);
+        return outpt;}
+
+    void main(void) {
+        float c      = ncos(t);
+        float dist   = length(uv - .5);
+        float ripple = abs(cos(5000.*dist*t*uv.x));
+        color = vec4(t*uv.x, uv.y, ripple,c);}\`;
+
+/*--------------- Program -------------*/
+let shader = shader_make(fragment_code);
+let t  = gl.getUniformLocation(shader, 't');
+
+function loop() {
+   gl.uniform1f(t, Math.sin(toc()));
+   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+   requestAnimationFrame(loop);}
+loop();`);
+
+paper.value = scripts[Math.floor(Math.random()*scripts.length)];}
+
+ </script> </body> </html>       
