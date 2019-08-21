@@ -26,18 +26,17 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `clear_pivot_0.html`: Shader fcn to clear under pivot
 * `mini_shader.html`: Template for Fragment Shader test environment
 * `mini_shader_plus.html`: ... interactive version
+* `mini_shader_webgl2.html`: ... webgl2 version
 
 *to do:*
 
-* Write a shader to clear under a pivot
-* Write get/set functions in the fragment shader
-* Write a 1-channel matrix-texture interface
+* Get/set functions for texture pixels
+* Transform feedback
+* Load jpgs, .pngs
 
 *about:*
 
-The goal of this project is to learn about GPGPU with WebGL.  Ideally, this project would culminate in writing a WebGL-Accelerated ping-pong solver for large linear systems.  This would be really useful for engineering stuff.  
-
-However, it appears to be a long road from making triangles to doing efficient GPU computation.  The current mini-goal is to just put in hours doing stuff with WebGL.  Writing short scripts is a way to maintain interest in the subject.  
+The goal of this project is to learn about WebGL and hopefully make a ping-pong solver for linear systems.  
 
 Two resources that have been really helpful are the `turbo.js` source code and notes from:  http://www.vizitsolutions.com/portfolio/webgl/gpgpu/.
 
@@ -45,4 +44,3 @@ Two resources that have been really helpful are the `turbo.js` source code and n
 
 Talk by creators of gpu.js:
 https://www.youtube.com/watch?v=nUAZxpE9s9w
-
