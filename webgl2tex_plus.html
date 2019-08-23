@@ -54,7 +54,7 @@ let tex_obj_1 = gl.createTexture();
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
- tex_data_1 = new Float32Array(4*W*H);
+ 	tex_data_1 = new Float32Array(4*W*H);
 for (let i = 0; i < 4*W*H; i++) { tex_data_1[i] = i/(4*W*H);}
 
 let tex_uniform_2 = gl.getUniformLocation(shader_program, 'tex2'); 
