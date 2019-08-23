@@ -27,6 +27,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `mini_shader.html`: Template for Fragment Shader test environment
 * `mini_shader_plus.html`: ... interactive version
 * `mini_shader_webgl2.html`: ... webgl2 version
+* `webgl2tex_plus.html`: 2 textures
 
 *to do:*
 
