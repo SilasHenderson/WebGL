@@ -1,6 +1,6 @@
 ## WebGL!
 
-Notes related to learning about WebGL, with focus on GLSL shaders.
+Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.  
 
 *files:*
 
@@ -29,27 +29,12 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 * `mini_shader_webgl2.html`: ... webgl2 version
 * `webgl2tex_plus.html`: 2 textures
 
-*to do:*
-
-* Get/set functions for texture pixels
-* Transform feedback
-* Load jpgs, .pngs
-
-*about:*
-
-The goal of this project is to learn about WebGL and GPGPU.  
-
 *links:*
 
-A minimal example of gpgpu with webgl
-https://github.com/turbo/js
+* A minimal example of gpgpu with webgl: https://github.com/turbo/js
 
-Tutorial on gpgpu for webgl 1.0
-http://www.vizitsolutions.com/portfolio/webgl/gpgpu/.
+* Tutorial on gpgpu for webgl 1.0: http://www.vizitsolutions.com/portfolio/webgl/gpgpu/.
 
-Talk by creators of gpu.js:
-https://www.youtube.com/watch?v=nUAZxpE9s9w
+* Talk by creators of gpu.js: https://www.youtube.com/watch?v=nUAZxpE9s9w
 
-**Awesome** webgl 1/2 gpgpu examples.
-http://www.ibiblio.org/e-notes/webgl/gpu/contents.htm
-
+* *Awesome* webgl 1/2 gpgpu examples: http://www.ibiblio.org/e-notes/webgl/gpu/contents.htm
