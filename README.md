@@ -37,11 +37,19 @@ Notes related to learning about WebGL, with focus on GLSL shaders.
 
 *about:*
 
-The goal of this project is to learn about WebGL and hopefully make a ping-pong solver for linear systems.  
-
-Two resources that have been really helpful are the `turbo.js` source code and notes from:  http://www.vizitsolutions.com/portfolio/webgl/gpgpu/.
+The goal of this project is to learn about WebGL and GPGPU.  
 
 *links:*
 
+A minimal example of gpgpu with webgl
+https://github.com/turbo/js
+
+Tutorial on gpgpu for webgl 1.0
+http://www.vizitsolutions.com/portfolio/webgl/gpgpu/.
+
 Talk by creators of gpu.js:
 https://www.youtube.com/watch?v=nUAZxpE9s9w
+
+**Awesome** webgl 1/2 gpgpu examples.
+http://www.ibiblio.org/e-notes/webgl/gpu/contents.htm
+
