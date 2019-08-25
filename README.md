@@ -29,6 +29,9 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `mini_shader_webgl2.html`: ... webgl2 version
 * `webgl2tex_plus.html`: 2 textures
 
+*notes/mods:*
+* `mandelbrot_notes.html`: minified mandelbrot
+
 *links:*
 
 * A minimal example of gpgpu with webgl: https://github.com/turbo/js
