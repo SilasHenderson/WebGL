@@ -28,6 +28,8 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `mini_shader_plus.html`: ... interactive version
 * `mini_shader_webgl2.html`: ... webgl2 version
 * `webgl2tex_plus.html`: 2 textures
+* `mandelbrot_notes.html`:  Notes on mandelbrot 
+* `mandelbrot_gui.html`:  Explore mandelbrot
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
