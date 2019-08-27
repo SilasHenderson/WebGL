@@ -127,8 +127,7 @@ document.onkeydown = (e) => {
 	if (e.key == 'i')          iter_vel  =   -1;
 	if (e.key == 'k') 		   iter_vel  =    1;	  }
 
-document.onkeyup = (e) => {	scale_vel = 1;
-							x_vel     = 0;
-							y_vel     = 0;	
-							iter_vel  = 0;  }
+document.onkeyup = (e) => { 
+	scale_vel = 1;	
+	x_vel = y_vel = iter_vel  = 0;  }
 </script> </body> </html>
