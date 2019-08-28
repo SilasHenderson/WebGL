@@ -1,0 +1,146 @@
+<!-- Mandelbrot gui - - Document - - - - - - - $:\^# -->
+<!doctype html> <html> <body> 
+
+<div id = 'paper' style =     
+	'top: 0%;   height:100%; font-family:sans-serif; 
+    left:0%;   	width:30%;   background-color:#202020; 
+	color:#cfdafe;           position:fixed;'> </div>   
+
+<canvas id ='canvas' style = 
+	'top:0%; 	height:100%; 
+	 left:20%;	width:80%;   position:fixed;'> </canvas>
+
+<script>
+let canvas = document.getElementById('canvas');
+let aspect = canvas.getBoundingClientRect().width/
+             canvas.getBoundingClientRect().height;
+let gl = canvas.getContext('webgl2', {antialias:true});
+
+/*----------------------- Shaders ------------------*/
+let vs = gl.createShader(gl.VERTEX_SHADER);
+	gl.shaderSource(vs, 
+		`#version 300 es
+		layout(location = 0) in vec2 pos;
+		out vec2 Pos;
+		void main(void) {
+			Pos = pos; 
+			gl_Position = vec4( pos, 0., 1.);}`);
+	gl.compileShader(vs);
+
+let fs = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource( fs, 
+		`#version 300 es
+		precision highp float;
+		uniform float scale;	
+		uniform float rad;
+		
+		uniform int iter_max;
+		uniform vec2 midpt;
+		uniform float aspect;
+		in vec2 Pos;
+		out vec4 color;
+
+		void main(void) {
+				
+			float Coord_Re = midpt.x + Pos.x*scale*aspect;
+			float Coord_Im = midpt.y + Pos.y*scale;
+			
+			float Imag  = 0., Real  = 0.;
+			float Imag0 = 0., Real0 = 0.;
+			
+			int iter_count;
+			for (int iter = 0; iter < (iter_max+1); iter++) {
+				Imag  = Coord_Im + 2.*Imag0*Real0;	
+				Real  = Coord_Re + Real0*Real0 - Imag0*Imag0; 
+				Imag0 = Imag; 
+				Real0 = Real; 
+				iter_count = iter;	
+				if (Real*Real + Imag*Imag > 4.) { break; } }
+			
+			if (iter_count == iter_max) { 
+				color = vec4(0., 0., 0., 1.);}
+			else {
+				float n = float(iter_count)/float(iter_max);
+				color = vec4(n, n, n, 1); }}`);
+	gl.compileShader(fs);
+
+/*------------------------ Program -----------------*/
+let prog = gl.createProgram();
+	gl.attachShader(prog, vs);
+	gl.attachShader(prog, fs);
+	gl.linkProgram( prog);
+	gl.useProgram(  prog);
+
+let vert = new Float32Array([-1,-1, 1,-1, 1,1, -1,1]);
+	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+	gl.bufferData(gl.ARRAY_BUFFER, vert, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(0);
+	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 2*4, 0);
+
+let scale_loc    = gl.getUniformLocation(prog, 'scale');
+let iter_max_loc = gl.getUniformLocation(prog, 'iter_max');
+let midpt_loc    = gl.getUniformLocation(prog, 'midpt'); 
+let rad_loc      = gl.getUniformLocation(prog, 'rad');
+let aspect_loc   = gl.getUniformLocation(prog, 'aspect');
+
+/*------------------------ Run ----------------------*/
+let x_vel = 0;	let iter_vel  = 0;
+let y_vel = 0; 	let scale_vel = 1;	
+
+let iter_max =      800;
+let	x_mid = -0.74926263;
+let	y_mid = -0.06670433;
+let	scale =  0.00074232;
+
+loop();
+
+function loop() {
+	
+	x_mid += x_vel;
+	y_mid += y_vel;
+	scale *= scale_vel;
+	iter_max += iter_vel;
+
+	paper.innerHTML = 
+		`<br> Explore the Mandelbrot set! <hr>
+		Keyboard Controls: <br/>
+		&#160 &#160 Move: (&#8592, &#8593, &#8594, &#8595) <br/>
+		&#160 &#160 Zoom: (Enter, Shift):  <br/>
+		&#160 &#160 Iter: (i, k) <hr>
+		Each pixel is number <br/>
+		in complex plane (Re,Im), <br/> 
+		with light determined by: <hr> 
+		light = 0 <br/>
+		val = 0 <br/> <br/>
+		for (iter = 0:iter_max): <br/> 
+			&#160 &#160	val = val^2 - start_val <br/> 
+			&#160 &#160 if (val > 2): <br/>
+			&#160 &#160 &#160 &#160 light = iter <hr>
+		iterations:${iter_max} <br/>
+		midpt (Re):${x_mid.toFixed(8)}<br/>
+		midpt (Im):${y_mid.toFixed(8)}<br/>
+		plot radius:${scale.toFixed(8)}<br/><br/>`;
+
+	gl.uniform1f(aspect_loc, aspect);
+	gl.uniform1f(scale_loc, scale);
+	gl.uniform1i(iter_max_loc, Math.floor(iter_max) );
+	gl.uniform2f(midpt_loc, x_mid, y_mid);
+
+	gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+	requestAnimationFrame(loop); }
+
+/*----------------------- Keyboard ---------------------*/
+document.onkeydown = (e) => {
+	if (e.key == 'ArrowLeft')  	x_vel = - scale/100*aspect;
+	if (e.key == 'ArrowRight') 	x_vel =   scale/100*aspect;
+	if (e.key == 'ArrowUp')    	y_vel =   scale/100;
+	if (e.key == 'ArrowDown')  	y_vel = - scale/100; 
+
+	if (e.key == 'Enter')      	scale_vel =  .99;
+	if (e.key == 'Shift')      	scale_vel = 1.01;   
+	if (e.key == 'i')          	iter_vel  =   -1;
+	if (e.key == 'k') 		   	iter_vel  =    1;	  }
+
+document.onkeyup = (e) => {		x_vel = 0;	scale_vel = 1;	
+								y_vel = 0;	iter_vel  = 0; }
+</script> </body> </html>
