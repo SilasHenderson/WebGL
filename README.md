@@ -33,6 +33,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `mandelbrot_gui_0.html1`: -- formatting
 * `tex_mix.html`: sample 2 textures per draw
 * `pingpong_min.html`: ping-pong method with draw calls
+* `julia_gui.html`: Julia Set Gui
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
