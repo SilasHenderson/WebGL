@@ -2,9 +2,9 @@
 <!doctype html> <html> <body> 
 
 <div id = 'paper' style =     
-	'top: 0%;   height:100%; font-family:sans-serif; 
-    left:0%;   	width:20%;   background-color:#202020; 
-	color:#cfdafe;           position:fixed;'> </div>   
+	'top: 0%;   	height:100%; font-family:sans-serif; 
+    	left:0%;   	width:20%;   background-color:#202020; 
+	color:#cfdafe;  position:fixed;'> </div>   
 
 <canvas id ='canvas' style = 
 	'top:0%; 	height:100%; 
@@ -142,8 +142,8 @@ function loop() {
 document.onkeydown = (e) => {
 	if (e.key == 'Enter') 	scale_vel =  .99;
 	if (e.key == 'Shift') 	scale_vel = 1.01;   
-	if (e.key == 'm') 		iter_vel  =   -1;
-	if (e.key == 'n') 		iter_vel  =    1;
+	if (e.key == 'm') 	iter_vel  =   -1;
+	if (e.key == 'n') 	iter_vel  =    1;
 
 	if (e.key == 'ArrowLeft')  	midpt_vel[0] = -scale/100;
 	if (e.key == 'ArrowRight') 	midpt_vel[0] =  scale/100;
