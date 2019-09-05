@@ -31,6 +31,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `mandelbrot_notes.html`:  Notes on mandelbrot 
 * `mandelbrot_gui.html`:    Explore mandelbrot
 * `mandelbrot_gui_0.html1`: -- formatting
+* `tex_mix.html`: sample 2 textures per draw
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
