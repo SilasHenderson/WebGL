@@ -35,7 +35,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `pingpong_min.html`: ping-pong method with draw calls
 * `julia_gui.html`: Julia Set Gui
 * `flower_line.html`: varying-width line from triangles
-
+* `glsl_plot2d.html`: Plot gui, compute f(x,t) in vertex shader.
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
 
