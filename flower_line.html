@@ -1,4 +1,12 @@
-<html> <body> <canvas id='canvas'></canvas> <script> 
+<!doctype html>
+<h3> Varying-Width Line </h3>
+<p> 
+Material:     <code>gl.TRIANGLES </code> <br/>
+Updates with: <code> gl.bufferSubData </code> 
+</p>
+<canvas id='canvas'></canvas> 
+
+<script> 
 let canvas = document.getElementById('canvas');
 	canvas.width = canvas.height = 500;
 let gl = canvas.getContext('webgl2');   
@@ -35,10 +43,10 @@ let D = new Float32Array(1e6);
 	gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 2*4,0); 
 	
 let X = .9, X0 = .9, I = 0;
-let Y =  0, Y0 =  0, t0 = new Date().getTime();
+let Y =  0, Y0 =  0;
+let t0 = new Date().getTime();
 
 loop();
-
 function loop() {
 	let t = (new Date().getTime() - t0)/1000;
 	let w = .02*Math.cos(2*t)*Math.cos(2*t);
@@ -57,13 +65,11 @@ function line(x0, y0, x1, y1, w=.01) {
 	let L  = Math.sqrt(dx*dx + dy*dy);
 	let u  = dy*w/L;
 	let v  = dx*w/L;
-
 	D[I] = x0-u; I++; 	D[I] = y0+v; I++;  
 	D[I] = x0+u; I++;	D[I] = y0-v; I++;
 	D[I] = x1-u; I++;   D[I] = y1+v; I++;
-
 	D[I] = x0+u; I++; 	D[I] = y0-v; I++;  
 	D[I] = x1+u; I++;	D[I] = y1-v; I++;
 	D[I] = x1-u; I++;  	D[I] = y1+v; I++;}	
 	
-</script> </body> </html>
+</script> <!-- webgl-notes, $|# -->
