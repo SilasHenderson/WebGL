@@ -36,6 +36,8 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `julia_gui.html`: Julia Set Gui
 * `flower_line.html`: varying-width line from triangles
 * `glsl_plot2d.html`: Plot gui, compute f(x,t) in vertex shader
+* `attrib_obj_prog_fn.html`: attribute/program assembly abstraction
+
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
