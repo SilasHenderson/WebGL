@@ -1,0 +1,88 @@
+<!doctype html> 
+
+<h4> WebGL2 Float Textures </h4>
+<p> press 'i' to draw texture # 1 <br>
+    press 'j' to draw texture # 2 </p>
+<canvas id='canvas'>  </canvas>
+
+<script>   
+let canvas = document.getElementById('canvas');
+let gl = canvas.getContext('webgl2');
+
+/*-------------------------------------------------------*/
+let prog = Program(
+    `in vec2 xy, uv;
+    out vec2 UV;
+    void main() {
+        UV = uv;
+        gl_Position = vec4(xy, 0., 1.);}`, 
+
+    `in vec2 UV;
+    out vec4 color;
+    uniform sampler2D tex;
+    void main() { 
+        color = vec4(texture(tex,UV).xyz,1.);}`);
+
+let xy   = new Attrib(prog, 'xy', 2, [-1,1, -1,-1, 1,1, 1,-1]);
+let uv   = new Attrib(prog, 'uv', 2, [ 0,1,  0, 0, 1,1, 1, 0]);
+let tex  = new Texture(10, 10, random(  0, 1, 4*10*10));
+let tex2 = new Texture(10, 10, linspace(0, 1, 4*10*10));
+
+document.onkeydown = (e) => {
+    if (e.key == 'j') { Draw(tex.id);  }
+    if (e.key == 'k') { Draw(tex2.id); } }
+
+/*---------------------------------------------------------------*/
+function Draw(tex){
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); } 
+
+function Attrib(prog, loc, dim, data){
+    this.data = new Float32Array(data);
+    this.buf  = gl.createBuffer();
+    this.loc  = gl.getAttribLocation(prog, loc);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, this.data, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(this.loc);
+    gl.vertexAttribPointer(this.loc, dim, gl.FLOAT, false, 4*dim,0);}
+   
+function Program(vc,fc) {
+    vc = `#version 300 es
+    precision highp float;` + vc;
+    fc = `#version 300 es
+    precision highp float;` + fc;
+    
+    let vs = gl.createShader(gl.VERTEX_SHADER); 
+    let fs = gl.createShader(gl.FRAGMENT_SHADER); 
+    gl.shaderSource(vs,vc); gl.compileShader(vs);
+    gl.shaderSource(fs,fc); gl.compileShader(fs);
+    
+    let prog = gl.createProgram();
+        gl.attachShader(prog,vs);   gl.attachShader(prog,fs);
+        gl.linkProgram(prog);       gl.useProgram(prog);
+    return prog;}
+
+function Texture(w, h, data) {
+    this.id = gl.createTexture();
+    gl.bindTexture( gl.TEXTURE_2D, this.id);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER, gl.NEAREST); 
+    gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 
+        0, gl.RGBA, gl.FLOAT, data);}
+
+function linspace(low, high, n) {
+    let array = new Float32Array(n);
+    for (let i = 0; i < n; i++) array[i] = i*(high-low)/n;
+    return array;}
+
+function random(low, high, n) {
+    let array = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+        array[i] = low + (high-low)*Math.random();}
+    return array;}
+
+</script> <!-- webgl-notes ($|#) -->
