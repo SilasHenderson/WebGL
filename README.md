@@ -37,7 +37,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `flower_line.html`: varying-width line from triangles
 * `glsl_plot2d.html`: Plot gui, compute f(x,t) in vertex shader
 * `attrib_obj_prog_fn.html`: attribute/program assembly abstraction
-
+* `textures_webgl2.html`: texture abstraction (webgl2)
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
