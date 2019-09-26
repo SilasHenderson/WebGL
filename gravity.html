@@ -1,0 +1,117 @@
+<!doctype html>
+
+<!-- - - - - - - - - - - - Document - - - - - - - - - - -->
+<h4> Gravity with Transform Feedback </h4>
+<p> 1,000,000 particles </p>
+<canvas id="canvas" width=600 height=350> </canvas>
+
+<script>
+let canvas = document.getElementById("canvas");
+let gl = canvas.getContext("webgl2");      
+
+/*------------------------ Program ------------------------*/
+let prog = Program(`
+    layout(location=0) in vec2 pos; out vec2 pos_out;
+    layout(location=1) in vec2 vel; out vec2 vel_out;
+    uniform float dt;
+    float GM = -.005;
+
+    void main() {
+        vel_out = vel + GM*pos/pow(length(pos),3.)*dt;    
+        pos_out = pos + vel_out;    
+        gl_PointSize = .5;
+        gl_Position  = vec4(pos, 0., 1.);}`,
+ 
+    `out vec4 fragColor;
+    void main() { 
+        fragColor = vec4(1., 1., 1., 1.);}`, 
+
+    ["pos_out", "vel_out"]);
+
+/*---------------------- Variables -------------------------*/
+let vao = [ gl.createVertexArray(), 
+            gl.createVertexArray()];
+let tfo = [ gl.createTransformFeedback(),
+            gl.createTransformFeedback()];
+
+let pos_buf = [gl.createBuffer(), gl.createBuffer()];
+let vel_buf = [gl.createBuffer(), gl.createBuffer()];
+let dt_loc  = gl.getUniformLocation(prog, 'dt');
+
+let pos_data = Random(   -1,    1, 2000000);
+let vel_data = Random(-.005, .005, 2000000);
+
+/*------------------------- Setup  -------------------------*/
+VaoLocs(vao[0], [0,1]);
+    BufferDataLocSize(pos_buf[0], pos_data, 0, 2);
+    BufferDataLocSize(vel_buf[0], vel_data, 1, 2);
+    TransformIndexBuffer(tfo[0], [0, 1], [pos_buf[0], vel_buf[0]]);
+
+VaoLocs(vao[1], [0,1]);
+    BufferDataLocSize(pos_buf[1], pos_data, 0, 2);
+    BufferDataLocSize(vel_buf[1], vel_data, 1, 2);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    TransformIndexBuffer(tfo[1], [0,1], [pos_buf[1], vel_buf[1]]);
+        gl.bindVertexArray(null);
+        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    
+/*--------------------------- Main ------------------------------*/
+let state = 0;
+let t0 = new Date().getTime();
+loop();
+
+function loop() {   
+    gl.clearColor(.1, .1, .1, 1.); 
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    gl.uniform1f(dt_loc, (new Date().getTime()-t0)/1000);
+    gl.bindVertexArray(vao[state]);
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tfo[1-state]);
+    gl.beginTransformFeedback(gl.POINTS);
+    gl.drawArrays(gl.POINTS, 0, pos_data.length/2);
+    gl.endTransformFeedback();
+    
+    state = 1-state;
+    t0 = new Date().getTime();    requestAnimationFrame(loop); }
+
+/*------------------------- Functions -------------------------*/
+function VaoLocs(vao, locs) {
+    gl.bindVertexArray(vao);
+    for (let i = 0; i < locs.length; i++) {
+        gl.enableVertexAttribArray(locs[i]);}}
+
+function BufferDataLocSize(buffer, data, location, size) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0);}
+
+function TransformIndexBuffer(transform, index, buffer) {
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transform);
+    for (let i = 0; i < index.length; i++) {
+        gl.bindBufferBase(
+            gl.TRANSFORM_FEEDBACK_BUFFER, index[i], buffer[i]);}}
+
+function Program(vc,fc, tf) {
+    vc = `#version 300 es \n precision highp float;` + vc;
+    fc = `#version 300 es \n precision highp float;` + fc;
+    
+    let vs = gl.createShader(gl.VERTEX_SHADER); 
+    let fs = gl.createShader(gl.FRAGMENT_SHADER); 
+    gl.shaderSource(vs,vc); gl.compileShader(vs);
+    gl.shaderSource(fs,fc); gl.compileShader(fs);
+    
+    let prog = gl.createProgram();
+        gl.attachShader(prog,vs);  
+        gl.attachShader(prog,fs);
+        gl.transformFeedbackVaryings(prog, tf, gl.SEPARATE_ATTRIBS);
+        gl.linkProgram(prog);     
+        gl.useProgram(prog);
+    return prog; }
+
+function Random(low, high, n) {
+    let array = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+        array[i] = low + (high-low)*Math.random();}
+    return array;}
+
+</script> <!-- ($|#) --> 
