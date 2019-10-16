@@ -1,0 +1,75 @@
+<h4 style="color:#553377"> Load Image as Texture Sampler </h4>
+
+<img width=200 height=200 src='pug.jpg'> </img>
+<canvas id='canvas' width=200 height=200> </canvas>
+
+<script>
+let canvas = document.getElementById('canvas');
+let gl     = canvas.getContext('webgl2');
+
+let vs = gl.createShader(gl.VERTEX_SHADER);
+	gl.shaderSource(vs, `#version 300 es
+		layout(location=0) in vec2 xy;
+		layout(location=1) in vec2 uv;
+		out vec2 UV;
+		void main() { 
+			UV = uv;
+			gl_Position = vec4(xy.x, -xy.y, 0., 1.); }`);
+	gl.compileShader(vs);
+
+let fs = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource(fs, `#version 300 es
+		precision highp float;
+		uniform float t;	uniform sampler2D tex;
+		in vec2 UV; 		out vec4 color;
+		void main() { 
+			vec4 c = texture(tex, UV);
+			color = vec4(c.x + .2*cos(t), 
+			             c.y + .2*cos(2.*t), 
+			             c.z + .2*cos(3.*t), 
+			             1.);}`);
+	gl.compileShader(fs);
+
+let prog = gl.createProgram();
+	gl.attachShader(prog, vs);	gl.attachShader(prog, fs);
+	gl.linkProgram( prog);		gl.useProgram(  prog);
+
+let t_loc = gl.getUniformLocation(prog, 't');
+
+/*-------------------------------------------------------------------*/
+let xy = new Float32Array([-1,1, -1,-1, 1,1, 1,-1]);
+let xy_buf = gl.createBuffer();	
+	gl.bindBuffer(gl.ARRAY_BUFFER, xy_buf);	
+	gl.bufferData(gl.ARRAY_BUFFER, xy, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(0);
+	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 4*2, 0);
+
+let uv = new Float32Array([ 0,1,  0, 0, 1,1, 1, 0]);
+let uv_buf = gl.createBuffer();	
+	gl.bindBuffer(gl.ARRAY_BUFFER, uv_buf);
+	gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(1);
+	gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 4*2, 0);
+
+/*--------------------------------------------------------------------*/
+let tex = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, tex);
+
+let image = new Image();
+	image.src = 'pug.jpg';
+	image.onload = () => {
+		gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+		gl.generateMipmap(gl.TEXTURE_2D);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+
+/*-------------------------------------------------------------------*/
+let t = 0;
+
+loop();
+function loop() {
+	t += .02; 
+	gl.uniform1f(t_loc, t);
+	requestAnimationFrame(loop);
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+
+</script>
