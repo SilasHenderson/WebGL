@@ -39,6 +39,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `attrib_obj_prog_fn.html`: attribute/program assembly abstraction
 * `textures_webgl2.html`: texture abstraction (webgl2)
 * `gravity.html`: particles with transform feedback
+* `pug_test.html`: load image to texture sampler
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
