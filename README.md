@@ -41,6 +41,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `gravity.html`: particles with transform feedback
 * `pug_test.html`: load image to texture sampler
 * `two_tex.html`: adjust multisampling weights
+* `transform_2d.html`: 2d transform matrix gui
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
