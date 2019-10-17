@@ -1,0 +1,91 @@
+<!doctype html>
+
+<h3> Two Samplers </h3>
+<p> press keyboard up/down to adjust weights </p>
+<p id='p'> </p>
+<canvas id='canvas'> </canvas>
+
+<script>
+document.body.backgroundColor = '#339933';	
+let p  = document.getElementById('p');
+let gl = document.getElementById('canvas').getContext('webgl2');
+
+let vs = gl.createShader(gl.VERTEX_SHADER);
+	gl.shaderSource(vs, `#version 300 es
+		layout(location=0) in vec2 xy;
+		layout(location=1) in vec2 uv;
+		out vec2 UV;
+		void main() { 
+			UV = uv;
+			gl_Position = vec4(xy.x, -xy.y, 0., 1.); }`);
+	gl.compileShader(vs);
+
+let fs = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource(fs, `#version 300 es
+		precision highp float;
+		uniform sampler2D tex0, tex1;
+		uniform float w;
+		in vec2 UV; 
+		out vec4 color;
+		void main() { 
+			color = (w*texture(tex0, UV) + (1.-w)*texture(tex1, UV))/2.; }`);
+	gl.compileShader(fs);
+
+let prog = gl.createProgram();
+	gl.attachShader(prog, vs);	gl.attachShader(prog, fs);
+	gl.linkProgram( prog);		gl.useProgram(  prog);
+
+gl.uniform1i(gl.getUniformLocation(prog, 'tex0'), 0);
+gl.uniform1i(gl.getUniformLocation(prog, 'tex1'), 1);
+
+let w_loc = gl.getUniformLocation(prog, 'w');
+let M_loc = gl.getUniformLocation(prog, 'M');
+
+let xy = new Float32Array([-1,1, -1,-1, 1,1, 1,-1]);
+let xy_buf = gl.createBuffer();	
+	gl.bindBuffer(gl.ARRAY_BUFFER, xy_buf);	
+	gl.bufferData(gl.ARRAY_BUFFER, xy, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(0);
+	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 4*2, 0);
+
+let uv = new Float32Array([ 0,1,  0, 0, 1,1, 1, 0]);
+let uv_buf = gl.createBuffer();	
+	gl.bindBuffer(gl.ARRAY_BUFFER, uv_buf);
+	gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(1);
+	gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 4*2, 0);
+
+let tex0 = gl.createTexture();
+let tex1 = gl.createTexture();
+
+image_to_texture('/images/pug.jpg',     tex0, gl.TEXTURE0);
+image_to_texture('/images/waffles.jpg', tex1, gl.TEXTURE1);
+
+let w_vel =  0;
+let w     = .5;
+
+loop();
+
+/*--------------------------------------------------------------------*/
+function loop() {
+	requestAnimationFrame(loop);
+	w += w_vel;
+	p.innerHTML = w.toFixed(3);
+	gl.uniform1f(w_loc, w);
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+
+function image_to_texture(image_src, texture, unit) {
+	let image = new Image();
+		image.src = image_src;
+		image.onload = () => {
+			gl.activeTexture(unit);
+			gl.bindTexture(gl.TEXTURE_2D, texture); 	
+			gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+			gl.generateMipmap(gl.TEXTURE_2D);} }
+
+document.body.onkeydown = (e) => { 
+	if (e.key == 'ArrowUp')  { 	w_vel =  .02; }
+	if (e.key == 'ArrowDown'){ 	w_vel = -.02; } }
+
+document.body.onkeyup = (e) => {w_vel = 0;}
+</script>
