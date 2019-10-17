@@ -1,0 +1,120 @@
+<!doctype html>
+<h4> Transformation Matrix </h4>
+<pre>
+<b>(-)	(+)</b>
+e, r, 	u, i
+d, f, 	j, k     <-- press keyboard </pre>
+<p id='p'> </p>
+<canvas id='canvas'> </canvas>
+
+<script>
+document.body.backgroundColor = '#339933';	
+let p  = document.getElementById('p');
+let gl = document.getElementById('canvas').getContext('webgl2');
+
+let vs = gl.createShader(gl.VERTEX_SHADER);
+	gl.shaderSource(vs, `#version 300 es
+		layout(location=0) in vec2 xy;
+		layout(location=1) in vec2 uv;
+		uniform mat2 M;
+		out vec2 UV;
+
+		void main() { 
+			UV = M*uv;
+			gl_Position = vec4(xy.x, -xy.y, 0., 1.); }`);
+	gl.compileShader(vs);
+
+let fs = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource(fs, `#version 300 es
+		precision highp float;
+		uniform sampler2D tex0, tex1;
+		uniform float w;
+		in vec2 UV; 
+		out vec4 color;
+		void main() { 
+			color = (w*texture(tex0, UV) + (1.-w)*texture(tex1, UV))/2.; }`);
+	gl.compileShader(fs);
+
+let prog = gl.createProgram();
+	gl.attachShader(prog, vs);	gl.attachShader(prog, fs);
+	gl.linkProgram( prog);		gl.useProgram(  prog);
+
+gl.uniform1i(gl.getUniformLocation(prog, 'tex0'), 0);
+gl.uniform1i(gl.getUniformLocation(prog, 'tex1'), 1);
+
+let w_loc = gl.getUniformLocation(prog, 'w');
+let M_loc = gl.getUniformLocation(prog, 'M');
+
+let xy = new Float32Array([-1,1, -1,-1, 1,1, 1,-1]);
+let xy_buf = gl.createBuffer();	
+	gl.bindBuffer(gl.ARRAY_BUFFER, xy_buf);	
+	gl.bufferData(gl.ARRAY_BUFFER, xy, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(0);
+	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 4*2, 0);
+
+let uv = new Float32Array([ 0,1,  0, 0, 1,1, 1, 0]);
+let uv_buf = gl.createBuffer();	
+	gl.bindBuffer(gl.ARRAY_BUFFER, uv_buf);
+	gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(1);
+	gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 4*2, 0);
+
+let tex0 = gl.createTexture();
+let tex1 = gl.createTexture();
+
+image_to_texture('/images/cat.jpg', tex0, gl.TEXTURE0);
+image_to_texture('/images/bike.jpg', tex1, gl.TEXTURE1);
+
+let w_vel =  0;
+let w     =  1;
+
+let M     = new Float32Array([1,0, 0,1]);
+let M_vel = new Float32Array([0,0, 0,0]);
+loop();
+
+/*--------------------------------------------------------------------*/
+function loop() {
+	requestAnimationFrame(loop);
+	w += w_vel;
+	add(M,M_vel);
+
+	p.innerHTML = 
+	`${M[0].toFixed(2)} ${M[2].toFixed(2)}<br>
+	${M[1].toFixed(2)} ${M[3].toFixed(2)} <-- T`;
+
+	gl.uniform1f(w_loc, w);
+	gl.uniformMatrix2fv(M_loc, false, M);
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+
+function image_to_texture(image_src, texture, unit) {
+	let image = new Image();
+		image.src = image_src;
+		image.onload = () => {
+			gl.activeTexture(unit);
+			gl.bindTexture(gl.TEXTURE_2D, texture); 	
+			gl.texImage2D( gl.TEXTURE_2D, 0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,image);
+			gl.generateMipmap(gl.TEXTURE_2D);} }
+
+function add(target_matrix, add_matrix) {
+	for (let i = 0; i < target_matrix.length; i++) {
+		target_matrix[i] += add_matrix[i]; } }
+
+document.body.onkeydown = (e) => { 
+	if (e.key == 'ArrowUp')  { 	w_vel =  .02; }
+	if (e.key == 'ArrowDown'){ 	w_vel = -.02; }
+
+	if (e.key == 'u') M_vel[0] = .01;		
+	if (e.key == 'j') M_vel[1] = .01;
+	if (e.key == 'i') M_vel[2] = .01;
+	if (e.key == 'k') M_vel[3] = .01;
+
+	if (e.key == 'e') M_vel[0] =-.01;
+	if (e.key == 'd') M_vel[1] =-.01;
+	if (e.key == 'r') M_vel[2] =-.01;
+	if (e.key == 'f') M_vel[3] =-.01; }
+
+document.body.onkeyup = (e) => {
+	w_vel = 0;
+	M_vel.fill(0);}
+
+</script>
