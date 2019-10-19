@@ -6,7 +6,6 @@
 <canvas id='canvas'> </canvas>
 
 <script>
-document.body.backgroundColor = '#339933';	
 let p  = document.getElementById('p');
 let gl = document.getElementById('canvas').getContext('webgl2');
 
@@ -37,7 +36,6 @@ let prog = gl.createProgram();
 
 gl.uniform1i(gl.getUniformLocation(prog, 'tex0'), 0);
 gl.uniform1i(gl.getUniformLocation(prog, 'tex1'), 1);
-
 let w_loc = gl.getUniformLocation(prog, 'w');
 let M_loc = gl.getUniformLocation(prog, 'M');
 
@@ -57,20 +55,18 @@ let uv_buf = gl.createBuffer();
 
 let tex0 = gl.createTexture();
 let tex1 = gl.createTexture();
-
 image_to_texture('/images/pug.jpg',     tex0, gl.TEXTURE0);
 image_to_texture('/images/waffles.jpg', tex1, gl.TEXTURE1);
-
 let w_vel =  0;
 let w     = .5;
 
 loop();
-
 /*--------------------------------------------------------------------*/
 function loop() {
 	requestAnimationFrame(loop);
 	w += w_vel;
-	p.innerHTML = w.toFixed(3);
+	p.innerHTML = 'pug: ' + (100*w).toFixed(1) + '% <br>' + 
+	              'waffle: ' + (100 - 100*w).toFixed(1) + '%';
 	gl.uniform1f(w_loc, w);
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
 
@@ -82,10 +78,8 @@ function image_to_texture(image_src, texture, unit) {
 			gl.bindTexture(gl.TEXTURE_2D, texture); 	
 			gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
 			gl.generateMipmap(gl.TEXTURE_2D);} }
-
 document.body.onkeydown = (e) => { 
 	if (e.key == 'ArrowUp')  { 	w_vel =  .02; }
 	if (e.key == 'ArrowDown'){ 	w_vel = -.02; } }
-
 document.body.onkeyup = (e) => {w_vel = 0;}
 </script>
