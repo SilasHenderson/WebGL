@@ -1,0 +1,188 @@
+<!-- Julia gui - - - Document - - - - - - - ($|#) -->
+<!doctype html> <html> <body> 
+
+<div id = 'paper' style =     
+	'top: 0%;   height:100%; font-family:sans-serif; 
+    left:0%;   	width:20%;   background-color:#202020; 
+	color:#e2e2e2;           position:fixed;'> </div>   
+
+<canvas id ='canvas' style = 
+	'top:0%; 	height:100%; 
+	 left:20%;	width:80%;   position:fixed;'> </canvas>
+
+<script>
+let canvas = document.getElementById('canvas');
+let gl     = canvas.getContext('webgl2');
+
+/*----------------------- Shaders ------------------*/
+let vs = gl.createShader(gl.VERTEX_SHADER);
+	gl.shaderSource(vs, `#version 300 es
+		layout(location = 0) in vec2 pos;
+		out vec2 clip_pos;
+		void main(void) {
+			clip_pos = pos; 
+			gl_Position = vec4(clip_pos, 0., 1.);}`);
+	gl.compileShader(vs);
+
+let fs = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource( fs, `#version 300 es
+		precision highp float;
+		uniform int iter_min, iter_max;
+		uniform float scale;	
+		uniform vec2 testpt, midpt;
+		in vec2 clip_pos;	
+		out vec4 color;
+
+		void main(void) {
+			vec2 pt = midpt + clip_pos*scale;
+			vec2 PT = vec2(0., 0.);
+			
+			int iter = 0;
+			for (int i = 0; i < iter_max+1; i++) {
+				iter = i;
+
+				PT.x = testpt.x + (pt.x*pt.x)-(pt.y*pt.y);
+				PT.y = testpt.y +  2.*(pt.x*pt.y); 
+				pt = PT;
+				if (length(pt) > 2.) { break;}}
+
+			if (iter == iter_max) {
+				color = vec4(0., 0., 0., 1.);}
+			else {
+				float numer = sqrt(float(iter)-float(iter_min));
+				float denom = sqrt(float(iter_max) - float(iter_min));
+				float L = numer/denom;
+				color = vec4(L, L, L, 1.); }}`);
+	gl.compileShader(fs);
+
+/*------------------------ Program -----------------*/
+let prog = gl.createProgram();
+	gl.attachShader( prog, vs);
+	gl.attachShader( prog, fs);
+	gl.linkProgram(  prog);
+	gl.useProgram(   prog);
+
+let vert = new Float32Array([-1,-1, 1,-1, 1,1, -1,1]);
+	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+	gl.bufferData(gl.ARRAY_BUFFER, vert, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(0);
+	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 2*4, 0);
+
+let iter_max_loc = gl.getUniformLocation( prog,	'iter_max');
+let iter_min_loc = gl.getUniformLocation( prog, 'iter_min')
+let scale_loc  = gl.getUniformLocation(   prog, 'scale');
+let midpt_loc  = gl.getUniformLocation(   prog, 'midpt'); 
+let testpt_loc = gl.getUniformLocation(   prog, 'testpt');
+
+/*--------------------- Parameters -------------------*/
+let iter_max   =  100; 	let iter_max_vel = 0;	
+let iter_min   =    1;	let iter_min_vel = 0;
+let scale      =    2;	let scale_vel    = 1;
+let speed      = .002;	let speed_vel    = 1;
+
+let midpt      = new Float32Array([  0, 0]);
+let midpt_vel  = new Float32Array([  0, 0]);
+let testpt     = new Float32Array([-.5,.5]);
+let testpt_vel = new Float32Array([  0, 0]);
+
+start_vals();
+let tic = new Date().getTime();
+loop();
+
+function loop() {
+	let toc = new Date().getTime() - tic;
+
+	iter_max  += iter_max_vel;
+	iter_min  += iter_min_vel;
+	scale     *= scale_vel;
+	testpt[0] += testpt_vel[0];
+	testpt[1] += testpt_vel[1];
+	midpt[0]  += midpt_vel[0];		
+	midpt[1]  += midpt_vel[1];		
+	speed     *= speed_vel;
+
+	paper.innerHTML = `
+	<b> <font color='#ddaaaa'>J</font><font color='#99aaff'>u</font><font color='#88ddaa'>l</font><font color='#cc77cc'>i</font><font color='#ffdd88'>a</font><font color='#e2e2e2'> set </font><font color='#e2c2e2'> gui </font></b>
+
+		<hr> <b> <font color='#ccddff'> Keyboard </font> </b> 
+		<br/> &#160 &#160 <i>Move </i>: s, f, d, e   
+		<br/> &#160 &#160 <i>Shift</i>: j, l, k, i  
+		<br/> &#160 &#160 <i>Zoom </i>: g, h 
+		<br/> &#160 &#160 <i>Iter_max</i>: t, y   
+		<br/> &#160 &#160 <i>Iter_min</i>: b, n    
+		<br/> &#160 &#160 <i>Speed</i>: u, o  	
+		<hr> <b><font color='#ccddff'>About </font> </b>
+		<br/>Graph is complex plane
+		<br/> center = ${(midpt[0]).toFixed(3)} + ${(midpt[1]).toFixed(3)} i
+		<br/> radius = ${scale.toFixed(6)}
+		<br/> speed = ${speed.toFixed(6)}
+		<hr> <b><font color='#ccddff'> Program </font></b>
+		<br/> z = x + iy
+		<br/> iter = 0;
+		<br/> while iter < ${iter_max}
+    	<br/> &#160 &#160 z = z<sup>2</sup> +
+     		${(testpt[0]).toFixed(3)} + ${(testpt[1]).toFixed(3)}i 
+    	<br/> &#160 &#160 if |z| > 2
+        <br/> &#160 &#160 &#160 &#160 L = (iter-${iter_min}) / ${iter_max}
+        <br/> &#160 &#160 &#160 &#160 color = rgba(L,L,L,1)
+			<hr> <b> <font color='#ccddff'>About </font> </b> 
+		<br/> This program is one file
+		<br/> No external libraries
+		<br/> Press (cntrl+u) for code`;
+
+	gl.uniform1i(	iter_min_loc, iter_min);
+	gl.uniform1i(   iter_max_loc, iter_max);
+	gl.uniform1f(  	scale_loc,    scale);
+	gl.uniform2fv( 	midpt_loc,    midpt);
+	gl.uniform2fv(	testpt_loc,   testpt);
+
+	gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+	requestAnimationFrame(loop); }
+
+/*----------------------- Keyboard ---------------------*/
+document.onkeydown = (e) => {
+	if (e.key == 'h') scale_vel =  .99;
+	if (e.key == 'g') scale_vel = 1.01;   
+
+	if (e.key == 't') iter_max_vel = -1;
+	if (e.key == 'y') iter_max_vel =  1;
+	if (e.key == 'b') iter_min_vel = -1;
+	if (e.key == 'n') iter_min_vel =  1;
+
+	if (e.key == 's') midpt_vel[0] = -scale/100;
+	if (e.key == 'f') midpt_vel[0] =  scale/100;
+	if (e.key == 'e') midpt_vel[1] =  scale/100;
+	if (e.key == 'd') midpt_vel[1] = -scale/100; 
+
+	if (e.key == 'u') speed_vel = .98;
+	if (e.key == 'o') speed_vel = 1.02;
+
+	if (e.key == 'j') testpt_vel[0] = - Math.sqrt(Math.abs(scale))*speed;
+	if (e.key == 'l') testpt_vel[0] =   Math.sqrt(Math.abs(scale))*speed;
+	if (e.key == 'i') testpt_vel[1] =   Math.sqrt(Math.abs(scale))*speed;
+	if (e.key == 'k') testpt_vel[1] = - Math.sqrt(Math.abs(scale))*speed; }
+
+document.onkeyup = (e) => {		
+	midpt_vel[0] = 0;	testpt_vel[0] = 0;	iter_min_vel = 0;
+	midpt_vel[1] = 0; 	testpt_vel[1] = 0;	iter_max_vel = 0;
+	scale_vel = 1;		speed_vel = 1;}
+
+function start_vals() {
+	let data = 
+		[[577,  .3043, .0002,  .07190, .59051, -.83712, .2248],
+		 [700,  .1410, .0002,   1.218, -.101,  -.797,   .165 ],
+		 [869,  .438,  .00003, -0.118, -.030,  -0.831,  .193 ],
+   		[1165,  .3511, .00013, -1.138,  .085,  -0.821,  .191 ]]
+ 
+    let idx = Math.floor(Math.random()*data.length);
+	iter_max  = data[idx][0];	
+	scale     = data[idx][1];	
+	speed     = data[idx][2]
+	midpt[0]  = data[idx][3];	
+	midpt[1]  = data[idx][4];
+	testpt[0] = data[idx][5];	
+	testpt[1] = data[idx][6];}
+
+</script> </body> </html>
+<!-- the code below makes an add for 000webhost -->
+<!-- it's not needed for program -->
