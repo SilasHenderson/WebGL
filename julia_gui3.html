@@ -1,0 +1,240 @@
+<!doctype html> <!--
+
+Julia Set Gui:  It's a microscope for numbers!
+
+Welcome!
+
+	This is a free program to explore the Julia Set. 
+	All code for this program is in this text file.
+	This file mixes JavaScript, WebGL, GLSL, and HTML.
+
+		HTML:       page layout
+		JavaScript: page layout + cpu math
+		GLSL:       gpu math
+		WebGL2:     graphics layout 
+
+	Color is determined pixel-by-pixel
+	Each pixel runs a mini-program to determine color:
+	
+		z = x + iy = pixel position
+		
+		Update z with z = z^2 + c (in a loop)
+			This makes z 'bounce around'
+			Each pixel bounces around in different way.
+			Some pixel stay local, others go off to infinity 
+		
+		Lite:  particle bounces out later
+		Dark:  particle bounces out quickly
+		Black: particle doesn't bounce out -->
+
+<!-- - - - - - - - - - - - - Document - - - - - - - - - - - - - - - - - -->
+<html> <body> 
+
+<div id = 'paper' style =     
+	'top:0%;    height:100%; font-family:sans-serif; 
+    left:0%;   	width:22%;   background-color:#202020; 
+	color:#f2f2f2;           position:fixed;'> </div>   
+
+<canvas id ='canvas' style = 
+	'top:0%; 	height:100%; 
+	 left:22%;	width:78%;   position:fixed;'> </canvas>
+
+<script>
+let canvas = document.getElementById('canvas');
+let gl     = canvas.getContext('webgl2');
+
+/* ----------------------- GLSL --------------------------*/
+let vs = gl.createShader(gl.VERTEX_SHADER);
+	gl.shaderSource(vs, `#version 300 es
+		layout(location = 0) in vec2 pos;
+		out vec2 clip_pos;
+		void main(void) {
+			clip_pos = pos; 
+			gl_Position = vec4(clip_pos, 0., 1.);}`);
+	gl.compileShader(vs);
+
+let fs = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource( fs, `#version 300 es
+		precision highp float;
+		uniform int iter_min, iter_max;
+		uniform float scale;	
+		uniform vec2 testpt, midpt;
+		in vec2 clip_pos;	
+		out vec4 color;
+
+		void main(void) {
+			vec2 pt = midpt + clip_pos*scale;
+			vec2 PT = vec2(0., 0.);
+			
+			int iter = 0;
+			for (int i = 0; i < iter_max+1; i++) {
+				iter = i;
+
+				PT.x = testpt.x + (pt.x*pt.x)-(pt.y*pt.y);
+				PT.y = testpt.y +  2.*(pt.x*pt.y); 
+				pt = PT;
+				if (length(pt) > 2.) { break;}}
+			
+			if (iter == iter_max) {
+				color = vec4(0., 0., 0., 1.);}
+			else {
+				float numer = sqrt(float(iter)-float(iter_min));
+				float denom = sqrt(float(iter_max) - float(iter_min));
+				float L = numer/denom;
+				color = vec4(L, L, L, 1.); }}`);
+	gl.compileShader(fs);
+
+let prog = gl.createProgram();
+	gl.attachShader( prog, vs);
+	gl.attachShader( prog, fs);
+	gl.linkProgram(  prog);
+	gl.useProgram(   prog);
+
+/*----------------------------------------------------------------*/
+let vert = new Float32Array([-1,-1, 1,-1, 1,1, -1,1]);
+	gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+	gl.bufferData(gl.ARRAY_BUFFER, vert, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray(0);
+	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 2*4, 0);
+
+let iter_max_loc = gl.getUniformLocation( prog,	'iter_max');
+let iter_min_loc = gl.getUniformLocation( prog, 'iter_min')
+let scale_loc  = gl.getUniformLocation(   prog, 'scale');
+let midpt_loc  = gl.getUniformLocation(   prog, 'midpt'); 
+let testpt_loc = gl.getUniformLocation(   prog, 'testpt');
+
+/*------------------------ Variables --------------------------*/
+let iter_max   =  100; 	let iter_max_vel = 0;	
+let iter_min   =    1;	let iter_min_vel = 0;
+let scale      =    2;	let scale_vel    = 1;
+let speed      = .002;	let speed_vel    = 1;
+
+let midpt      = new Float32Array([  0, 0]);
+let midpt_vel  = new Float32Array([  0, 0]);
+let testpt     = new Float32Array([-.5,.5]);
+let testpt_vel = new Float32Array([  0, 0]);
+
+/*-------------------------- Program --------------------------*/
+start_vals();
+let title_string = color_string("Julia Set Gui", .5, 1, "<b>","</b>");
+let tic = new Date().getTime();
+loop();
+
+function loop() {
+	let toc = new Date().getTime() - tic;
+
+	testpt[0] += testpt_vel[0];
+	testpt[1] += testpt_vel[1];
+	midpt[0]  += midpt_vel[0];		
+	midpt[1]  += midpt_vel[1];		
+	
+	iter_max  += iter_max_vel;
+	iter_min  += iter_min_vel;
+	scale     *= scale_vel;
+	speed     *= speed_vel;
+
+	paper.innerHTML = title_string + 
+		`<hr> <b> <font color='#ccddff'> Keyboard </font> </b> 
+		<br/> &#160 &#160 Move : s, f, d, e   
+		<br/> &#160 &#160 Shift : j, l, k, i  
+		<br/> &#160 &#160 Zoom : g, h 
+		<br/> &#160 &#160 Loops Min: t, y   
+		<br/> &#160 &#160 Loops Max: b, n    
+		<br/> &#160 &#160 Change Speed: u, o  	
+		
+		<hr> <b> <font color='#ccddff'> Info </font> </b>
+		<br/> <Graph Center:${(midpt[0]).toFixed(5)} + ${(midpt[1]).toFixed(5)}i
+		<br/> Graph Radius : ${scale.toFixed(6)}
+		<br/> Change Speed : ${speed.toFixed(6)}
+		
+		<br/> <font color='#ffffff'> Loop:</font>
+    	<br/> &#160&#160&#160 <b>z</b> = <b>z</b><sup>2</sup> 
+    		+ ${(testpt[0]).toFixed(3)} + ${(testpt[1]).toFixed(3)}<i>i</i>
+    	<br/> &#160&#160&#160 if |<b>z</b>| > 2
+        <br/> &#160 &#160 &#160 &#160 &#160 &#160 L = (<i>count</i>-${iter_min}) / 
+        ${iter_max}
+        <br/> &#160 &#160 &#160 &#160 &#160 &#160 <b>color</b>: rgba(L, L, L, 1)
+		<br/> &#160 &#160 &#160 if <i>count</i> > ${iter_max}:
+		<br/> &#160 &#160 &#160 &#160 &#160 &#160 <b>color</b>: rgba(0, 0, 0, 1)
+		<br/> &#160 &#160 &#160 <i>count</i> = <i>count</i> + 1;
+		
+		<hr> <b> <font color='#ccddff'>About </font> </b> 
+		
+		<br/> This is free .html file
+		<br/> No external libraries
+		<br/> Press (cntrl+u) for code and docs`;
+	
+	gl.uniform1i(	iter_min_loc, iter_min);
+	gl.uniform1i(   iter_max_loc, iter_max);
+	gl.uniform1f(  	scale_loc,    scale);
+	gl.uniform2fv( 	midpt_loc,    midpt);
+	gl.uniform2fv(	testpt_loc,   testpt);
+
+	gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+	requestAnimationFrame(loop); }
+
+/*------------------- Utility Functions -----------------*/
+function color_string(string, min=.4, max=.8, begin=" ", endy=" ") { 
+	
+	let nums = [0,1,2,3,4,5,6,7,8,9,'a','b','c','d','e','f'];
+	let new_string = begin;
+	for ( let char = 0; char < string.length; char++ ) {
+		new_string += "<font color='#";
+		for ( let num = 0; num < 6; num++ ) { 
+			let color = min + (max-min)*Math.random();
+			let index = Math.floor(15.99*color);
+			new_string += nums[index]; }
+		new_string += "'" + ">";
+		new_string += string[char] + "</font>";}
+	new_string += endy;
+
+	return new_string;}
+
+/*--------------------------- Keyboard ------------------------*/
+document.onkeydown = (e) => {
+	if (e.key == 'h') scale_vel =  .99;
+	if (e.key == 'g') scale_vel = 1.01;   
+
+	if (e.key == 't') iter_max_vel = -1;
+	if (e.key == 'y') iter_max_vel =  1;
+	if (e.key == 'b') iter_min_vel = -1;
+	if (e.key == 'n') iter_min_vel =  1;
+
+	if (e.key == 's') midpt_vel[0] = -scale/100;
+	if (e.key == 'f') midpt_vel[0] =  scale/100;
+	if (e.key == 'e') midpt_vel[1] =  scale/100;
+	if (e.key == 'd') midpt_vel[1] = -scale/100; 
+
+	if (e.key == 'u') speed_vel = .98;
+	if (e.key == 'o') speed_vel = 1.02;
+
+	if (e.key == 'j') testpt_vel[0] = - Math.sqrt(Math.abs(scale))*speed;
+	if (e.key == 'l') testpt_vel[0] =   Math.sqrt(Math.abs(scale))*speed;
+	if (e.key == 'i') testpt_vel[1] =   Math.sqrt(Math.abs(scale))*speed;
+	if (e.key == 'k') testpt_vel[1] = - Math.sqrt(Math.abs(scale))*speed; }
+
+document.onkeyup = (e) => {		
+	midpt_vel[0] = 0;	testpt_vel[0] = 0;	iter_min_vel = 0;
+	midpt_vel[1] = 0; 	testpt_vel[1] = 0;	iter_max_vel = 0;
+	scale_vel = 1;		speed_vel = 1;}
+
+function start_vals() {
+	let data = 
+		[[577,  .3043, .0002,  .07190, .59051, -.83712, .2248],
+		 [700,  .1410, .0002,   1.218, -.101,  -.797,   .165 ],
+		 [869,  .438,  .00003, -0.118, -.030,  -0.831,  .193 ],
+   		[1165,  .3511, .00013, -1.138,  .085,  -0.821,  .191 ]]
+ 
+    let idx = Math.floor(Math.random()*data.length);
+	iter_max  = data[idx][0];	
+	scale     = data[idx][1];	
+	speed     = data[idx][2]
+	midpt[0]  = data[idx][3];	
+	midpt[1]  = data[idx][4];
+	testpt[0] = data[idx][5];	
+	testpt[1] = data[idx][6];}
+
+</script> </body> 
+<!-- the code below makes an add for 000webhost -->
+<!-- it's not needed for program -->
+</html>
