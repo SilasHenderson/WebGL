@@ -43,6 +43,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `two_tex.html`: adjust multisampling weights
 * `transform_2d.html`: 2d transform matrix gui
 * `julia_gui2.html`: improved julia gui
+* `julia_gui3.html`, `mandelbrot2.html`, `gravity.html`: updates
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
