@@ -1,30 +1,36 @@
 <!doctype html>
 
 <!-- - - - - - - - - - - - Document - - - - - - - - - - -->
-<h4> Gravity with Transform Feedback </h4>
-<p> 1,000,000 particles </p>
-<canvas id="canvas" width=600 height=350> </canvas>
+<style> body{background-color:#bbccdd;} </style>
+<p id="paper" style=
+    'position:fixed; left:0%;  width:24%; top:0%; height:100%;'> </p>
+<canvas id="canvas" style=
+    'position:fixed; left:24%; width:76%; top:0%; height:100%; 
+     font-family:sans-serif;'> </canvas>
 
 <script>
-let canvas = document.getElementById("canvas");
-let gl = canvas.getContext("webgl2");      
+let paper  = document.getElementById('paper');
+let canvas = document.getElementById('canvas');
+let gl     = canvas.getContext("webgl2");      
 
 /*------------------------ Program ------------------------*/
 let prog = Program(`
     layout(location=0) in vec2 pos; out vec2 pos_out;
     layout(location=1) in vec2 vel; out vec2 vel_out;
-    uniform float dt;
-    float GM = -.005;
-
+    uniform float dt, GM;
+    uniform vec2 star_pos;
+    vec2 dist;
     void main() {
-        vel_out = vel + GM*pos/pow(length(pos),3.)*dt;    
-        pos_out = pos + vel_out;    
-        gl_PointSize = .5;
+        
+        dist = pos - star_pos;
+        vel_out = vel + GM*dist/pow(length(dist),3.)*dt;    
+        pos_out = pos + vel_out*dt;    
+        gl_PointSize = 1.;
         gl_Position  = vec4(pos, 0., 1.);}`,
  
     `out vec4 fragColor;
     void main() { 
-        fragColor = vec4(1., 1., 1., 1.);}`, 
+        fragColor = vec4(0., 0., 0., 1.);}`, 
 
     ["pos_out", "vel_out"]);
 
@@ -37,9 +43,13 @@ let tfo = [ gl.createTransformFeedback(),
 let pos_buf = [gl.createBuffer(), gl.createBuffer()];
 let vel_buf = [gl.createBuffer(), gl.createBuffer()];
 let dt_loc  = gl.getUniformLocation(prog, 'dt');
+let GM_loc  = gl.getUniformLocation(prog, 'GM');
+let star_pos_loc = gl.getUniformLocation(prog, 'star_pos');
 
-let pos_data = Random(   -1,    1, 2000000);
-let vel_data = Random(-.005, .005, 2000000);
+let pos_data = Random(-Math.random(), Math.random(), 2000000);
+let vel_data = Random(-.01*Math.random(), -.1*Math.random(), 2000000);
+
+start_pos();
 
 /*------------------------- Setup  -------------------------*/
 VaoLocs(vao[0], [0,1]);
@@ -56,23 +66,67 @@ VaoLocs(vao[1], [0,1]);
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
     
 /*--------------------------- Main ------------------------------*/
-let state = 0;
-let t0 = new Date().getTime();
-loop();
+let state =  0;
 
+let GM  =  -.5;  let GM_vel = 0;
+let dt  =  .01;  let dt_vel = 0;
+
+let star_pos = Random(-.1, .1, 2);
+let star_vel = new Float32Array(2).fill(0);
+
+document.onkeydown = (e) => {
+    if (e.key == 'f') star_vel[0] =  .01;
+    if (e.key == 's') star_vel[0] = -.01;
+    if (e.key == 'e') star_vel[1] =  .01;
+    if (e.key == 'd') star_vel[1] = -.01;
+
+    if (e.key == 'i') GM_vel = -.01;
+    if (e.key == 'k') GM_vel =  .01;
+    if (e.key == 'j') dt_vel = -.0005;
+    if (e.key == 'l') dt_vel =  .0005; }
+
+document.onkeyup = (e) => { 
+    GM_vel = dt_vel = 0; star_vel.fill(0); }
+
+let iterations = 0;
+
+set_resolution(1);
+loop();
 function loop() {   
-    gl.clearColor(.1, .1, .1, 1.); 
-    gl.clear(gl.COLOR_BUFFER_BIT);
     
-    gl.uniform1f(dt_loc, (new Date().getTime()-t0)/1000);
+    iterations++;
+    GM += GM_vel;
+    dt += dt_vel;
+    star_pos[0] += star_vel[0];
+    star_pos[1] += star_vel[1];
+
+    gl.clearColor(1, 1, 1, 1.); 
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform1f(GM_loc, GM);
+    gl.uniform1f(dt_loc, dt);
+    gl.uniform2fv(star_pos_loc, star_pos);
+
     gl.bindVertexArray(vao[state]);
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tfo[1-state]);
     gl.beginTransformFeedback(gl.POINTS);
     gl.drawArrays(gl.POINTS, 0, pos_data.length/2);
     gl.endTransformFeedback();
     
-    state = 1-state;
-    t0 = new Date().getTime();    requestAnimationFrame(loop); }
+    paper.innerHTML = 
+        `<b> Gravity! </b>
+        <br> <br> <i> Keyboard </i> 
+        <br> star position: s,d,f,e
+        <br> time step: j, l
+        <br> star gravity: i, k
+        <br> <br> <i> Data </i>
+        <br> iterations: ${iterations }
+        <br> a = ${ GM.toFixed(3) }/x<sup>2</sup> 
+        <br> v = v + a * ${ dt.toFixed(4)}
+        <br> x = x + v * ${ dt.toFixed(4)}
+        <br> star x,y = ${(star_pos[0]).toFixed(3)} , ${(star_pos[1]).toFixed(3)}`;
+
+    state = 1 - state;
+    requestAnimationFrame(loop); }
 
 /*------------------------- Functions -------------------------*/
 function VaoLocs(vao, locs) {
@@ -113,5 +167,33 @@ function Random(low, high, n) {
     for (let i = 0; i < n; i++) {
         array[i] = low + (high-low)*Math.random();}
     return array;}
+
+function start_pos() {
+    
+    let star_pos = Random(-1, 1, 2);
+    let star_vel = Random(-2, 2, 2);
+    let star_rad = .1*Math.random();
+
+    for (let i = 0; i < 1000000; i++) {
+
+        pos_data[2*i]   = star_pos[0] + star_rad*(1 - 2*Math.random());
+        pos_data[2*i+1] = star_pos[1] + star_rad*(1 - 2*Math.random());
+        
+        vel_data[2*i]   = star_vel[0] + star_rad*(1 - 2*Math.random());
+        vel_data[2*i+1] = star_vel[1] + star_rad*(1 - 2*Math.random());
+
+        if (Math.random() > .99999) {
+            star_pos = Random(  -.5,  .5, 2);
+            star_vel = Random( - 2,   2, 2); } 
+            star_rad = .1*Math.random(); } }
+
+function set_resolution(pixels=1) {
+    let width  = canvas.getBoundingClientRect().width;
+    let height = canvas.getBoundingClientRect().height;
+    
+    canvas.width  = width/pixels;
+    canvas.height = height/pixels;
+    gl.viewport(0, 0, width/pixels, height/pixels); }
+
 
 </script> <!-- ($|#) --> 
