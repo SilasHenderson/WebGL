@@ -1,0 +1,99 @@
+<!doctype html>
+
+<canvas id='canvas' style =
+	'left:0%; width:100%; top:0%; height:100%; position:fixed;'> 
+</canvas>
+
+<script> 
+let canvas = document.getElementById('canvas');
+let gl = canvas.getContext('webgl2');
+
+let prog = glsl_program(
+	`in vec2 xy;
+	void main(void) {
+	gl_Position  = vec4(xy, 0., 1.);}`, 
+  	
+  	 `out vec4 color;
+	void main(void) { 
+	color = vec4(0., 0., 0., 1.);}`);
+
+let xy_loc = gl.getAttribLocation(prog, 'xy');
+let data = new Float32Array(1e6);
+let idx  = 0;
+
+let buf = gl.createBuffer();
+	gl.bindBuffer( gl.ARRAY_BUFFER, buf );
+	gl.bufferData( gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray( xy_loc);
+	gl.vertexAttribPointer( xy_loc, 2, gl.FLOAT, false, 2*4,0); 
+
+let pixel_left   = canvas.getBoundingClientRect().x;
+let pixel_up     = canvas.getBoundingClientRect().y;
+let pixel_width  = canvas.getBoundingClientRect().width;
+let pixel_height = canvas.getBoundingClientRect().height;
+	
+canvas.width  = pixel_width; 
+canvas.height = pixel_height; 
+gl.viewport( pixel_left, pixel_up, pixel_width, pixel_height);
+
+let brush_size  = .008;
+
+/*-------------------------------------------------------------*/	
+let mouse_down = 0;
+let mouse_x0 = 0;	let mouse_y0 = 0;
+let mouse_x1 = 0;	let mouse_y1 = 0;
+
+canvas.onmousedown = (e) => { 
+	mouse_x0 = 2*(e.clientX - pixel_left)/pixel_width - 1;
+	mouse_y0 = 1 - 2*(e.clientY - pixel_up)/pixel_height;
+	mouse_down = 1;}
+
+canvas.onmouseup = (e) => { mouse_down = 0; }
+canvas.onmousemove = (e) => { 
+	if (mouse_down == 1) {
+		mouse_x1 =  2*(e.clientX - pixel_left)/pixel_width - 1;
+		mouse_y1 = -2*(e.clientY - pixel_up)/pixel_height + 1;
+
+		add_line_data(mouse_x0, mouse_y0, mouse_x1, mouse_y1);
+		mouse_x0 = mouse_x1;
+		mouse_y0 = mouse_y1;
+		requestAnimationFrame(draw);}}
+
+/*---------------------------------------------------------------*/
+function glsl_program(vc, fc){
+	vc = `#version 300 es \n precision mediump float;` + vc;
+    fc = `#version 300 es \n precision mediump float;` + fc;
+    
+    let vs = gl.createShader(gl.VERTEX_SHADER); 
+    let fs = gl.createShader(gl.FRAGMENT_SHADER); 
+    gl.shaderSource(vs,vc); gl.compileShader(vs);
+    gl.shaderSource(fs,fc); gl.compileShader(fs);
+    
+    let prog = gl.createProgram();
+        gl.attachShader(prog,vs);  
+        gl.attachShader(prog,fs);
+        gl.linkProgram(prog);     
+        gl.useProgram(prog);
+    return prog; }
+
+function add_line_data(x0, y0, x1, y1){
+	let dx = x1 - x0;
+	let dy = y1 - y0;
+	let L  = Math.sqrt(dx*dx + dy*dy);
+	let u  = dy*brush_size/L;
+	let v  = dx*brush_size/L;
+		
+	data[idx] = x0-u; idx++; 	data[idx] = y0+v; idx++;  
+	data[idx] = x0+u; idx++;	data[idx] = y0-v; idx++;
+	data[idx] = x1-u; idx++;  	data[idx] = y1+v; idx++;
+	data[idx] = x0+u; idx++; 	data[idx] = y0-v; idx++;  
+	data[idx] = x1+u; idx++;	data[idx] = y1-v; idx++;
+	data[idx] = x1-u; idx++;  	data[idx] = y1+v; idx++;}
+
+function draw(){
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
+	gl.drawArrays( gl.TRIANGLES, 0, idx);}
+
+// s.*
+</script>
