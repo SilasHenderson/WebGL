@@ -1,0 +1,188 @@
+<!doctype html>
+
+<div id='info' style=
+	'position:fixed; left:0%; width:20%; top:0%; height:100%; 
+	 background-color:#dddddd;'> </div>
+
+<div style=
+	'position:fixed; left:19.8%; width:.2%;  top:0%; height:100%; 
+	background-color:#ccccff;'> </div>
+
+<canvas id='canvas' style =
+	'left:20%; width:80%; top:0%; height:100%; position:fixed;'> 
+</canvas>
+
+<script>
+let canvas = document.getElementById('canvas');
+let info   = document.getElementById('info');
+let gl     = canvas.getContext('webgl2');
+let prog   = glsl_program(
+	`in vec2 xy;
+	uniform float view_x, view_y, view_w, view_h;
+	void main(void) {
+		float clip_x = (xy.x-view_x)/view_w;
+		float clip_y = (xy.y-view_y)/view_h;
+ 		gl_Position  = vec4( clip_x, clip_y, 0., 1.);}`, 
+  	
+  	 `out vec4 color;
+	void main(void) { 
+		color = vec4( 0., 0., 0., 1.);}`);
+
+let data = new Float32Array(1e6);
+
+let xy_loc = gl.getAttribLocation(prog, 'xy');
+let xy_buf = gl.createBuffer();
+	gl.bindBuffer( gl.ARRAY_BUFFER, xy_buf );
+	gl.bufferData( gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+	gl.enableVertexAttribArray( xy_loc);
+	gl.vertexAttribPointer( xy_loc, 2, gl.FLOAT, false, 2*4,0); 
+
+let view_x_loc = gl.getUniformLocation( prog, 'view_x');
+let view_y_loc = gl.getUniformLocation( prog, 'view_y');
+let view_w_loc = gl.getUniformLocation( prog, 'view_w');
+let view_h_loc = gl.getUniformLocation( prog, 'view_h');
+
+let view_x =  0;	let view_x_vel = 0;
+let view_y =  0;	let view_y_vel = 0;
+let view_w =  1;	let view_w_vel = 0;
+let view_h =  1;	let view_h_vel = 0;
+
+let pixel_x = canvas.getBoundingClientRect().x;
+let pixel_y = canvas.getBoundingClientRect().y;
+let pixel_w = canvas.getBoundingClientRect().width;
+let pixel_h = canvas.getBoundingClientRect().height;
+
+/*-------------------------------------------------------------*/	
+let brush_size = .008;
+let brush_size_vel = 0;
+
+let idx = 0;
+let idx_vel = 0;
+
+let mouse_down = 0;
+let mouse_click_new = 0;
+
+let mouse_clip_x = 0;
+let mouse_clip_y = 0;
+
+let mouse_x = 0;	let tail_x = 0; 		
+let mouse_y = 0;	let tail_y = 0; 
+
+canvas.width  = pixel_w; 
+canvas.height = pixel_h; 
+gl.viewport(0,0, pixel_w, pixel_h);
+gl.clearColor(.98, .98, .98, 1);
+
+/*----------------------------------------------------------*/
+loop();
+function loop() {
+
+	if (mouse_down == 1) { 
+		add_line_data( tail_x, tail_y, mouse_x, mouse_y ); }
+		
+	tail_x = mouse_x;
+	tail_y = mouse_y;
+
+	idx += idx_vel;
+	view_x += view_x_vel;
+	view_y += view_y_vel;
+	view_w += view_w_vel;
+	view_h += view_h_vel;
+
+	gl.uniform1f( view_x_loc, view_x);
+	gl.uniform1f( view_y_loc, view_y);
+	gl.uniform1f( view_w_loc, view_w);
+	gl.uniform1f( view_h_loc, view_h);
+
+	set_info();
+	draw();
+	requestAnimationFrame(loop); }
+
+/*---------------------------------------------------------------*/
+document.onmousedown = (e) => { mouse_down = 1; mouse_click_new = 1; }
+document.onmouseup   = (e) => { mouse_down = 0; }
+document.onmousemove = (e) => { 
+	mouse_clip_x =  2*( e.clientX - pixel_x)/pixel_w - 1;
+	mouse_clip_y = -2*( e.clientY - pixel_y)/pixel_h + 1; 
+	
+	mouse_x = view_w*mouse_clip_x + view_x;
+	mouse_y = view_h*mouse_clip_y + view_y;}
+
+document.onkeydown = (e) => { 
+	if (e.key == 'ArrowLeft')   idx_vel = -12; 
+	if (e.key == 'ArrowRight') 	idx_vel =  12;
+	if (e.key == 'ArrowUp')   	brush_size_vel =  .0001; 
+	if (e.key == 'ArrowDown') 	brush_size_vel = -.0001; 
+	
+	if (e.key == 'h') { view_h_vel =  .01; view_w_vel =  .01; }
+	if (e.key == 'g') { view_h_vel = -.01; view_w_vel = -.01; }
+
+	if (e.key == 's') view_x_vel = -.01;	
+	if (e.key == 'f') view_x_vel =  .01; 
+	if (e.key == 'd') view_y_vel = -.01;
+	if (e.key == 'e') view_y_vel =  .01; }
+
+document.onkeyup = (e) => {
+	idx_vel = brush_size_vel = 0;
+	view_x_vel = view_y_vel = view_w_vel = view_h_vel = 0; }
+
+/*----------------------------------------------------------------------*/
+function glsl_program(vc, fc){
+	vc = `#version 300 es \n precision mediump float;` + vc;
+    fc = `#version 300 es \n precision mediump float;` + fc;
+    
+    let vs = gl.createShader(gl.VERTEX_SHADER); 
+    let fs = gl.createShader(gl.FRAGMENT_SHADER); 
+    gl.shaderSource(vs,vc); gl.compileShader(vs);
+    gl.shaderSource(fs,fc); gl.compileShader(fs);
+    
+    let prog = gl.createProgram();
+        gl.attachShader(prog,vs);  
+        gl.attachShader(prog,fs);
+        gl.linkProgram(prog);     
+        gl.useProgram(prog);
+    return prog; }
+
+function add_line_data(x0, y0, x1, y1){
+	let dx = x1 - x0;
+	let dy = y1 - y0;
+	let L  = Math.sqrt(dx*dx + dy*dy);
+	let u  = dy/L*brush_size;
+	let v  = dx/L*brush_size;
+		
+	data[idx] = x0-u; idx++; 	data[idx] = y0+v; idx++;  
+	data[idx] = x0+u; idx++;	data[idx] = y0-v; idx++;
+	data[idx] = x1-u; idx++;  	data[idx] = y1+v; idx++;
+	data[idx] = x0+u; idx++; 	data[idx] = y0-v; idx++;  
+	data[idx] = x1+u; idx++;	data[idx] = y1-v; idx++;
+	data[idx] = x1-u; idx++;  	data[idx] = y1+v; idx++;}
+
+function draw(){
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
+	gl.drawArrays( gl.TRIANGLES, 0, idx/2);}
+
+function set_info() {
+	info.innerHTML = 
+		`<b> Paint </b> <hr>
+		
+		<b> keyboard </b> <br/>
+		 &#160 &#160 &#8592 &#8594: undo/redo <br/>
+		 &#160 &#160 &#8593 &#8595: brush +/- <hr/>
+		
+		<b> data </b> <br/> 
+		&#160 &#160 index:${ idx } <br/>
+	 	&#160 &#160 size: ${ brush_size.toFixed(3) } <hr/>	 	
+	 	
+	 	mouse_clip_x: ${ mouse_clip_x.toFixed(3) } <br/>
+	 	mouse_clip_y: ${ mouse_clip_y.toFixed(3) } <br/>
+	 	mouse_x: ${ mouse_x.toFixed(3) } <br/>
+	 	mouse_y: ${ mouse_y.toFixed(3) } <br/> <br/>
+
+		view_x: ${ view_x.toFixed(3) } <br/>
+	 	view_y: ${ view_y.toFixed(3) } <br/>
+	 	view_w: ${ view_w.toFixed(3) } <br/>
+	 	view_h: ${ view_h.toFixed(3) } `;}
+
+// s.*
+</script>
