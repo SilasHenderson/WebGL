@@ -44,6 +44,7 @@ Notes related to learning about WebGL, with focus on GLSL shaders and GPGPU.
 * `transform_2d.html`: 2d transform matrix gui
 * `julia_gui2.html`: improved julia gui
 * `julia_gui3.html`, `mandelbrot2.html`, `gravity.html`: updates
+* `buffersub_paint123.html`: paint with buffer-subdata
 
 *notes/mods:*
 * `mandelbrot_notes.html`: minified mandelbrot
