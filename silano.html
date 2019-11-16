@@ -1,0 +1,97 @@
+<!doctype html> <body> <script>
+
+let paper  = make_el('textarea', [ 0, 0, .5, 1]);
+let canvas = make_el('canvas',   [.5, 0, .5, 1]);
+let gl     = canvas.getContext('webgl2');
+let prog   = gl.createProgram();
+let tex    = gl.createTexture(); // *.$
+
+let vtx_code = 
+	`in vec2 xy, uv;
+	out vec2 UV;
+	void main() { 
+		UV = uv;
+		gl_Position = vec4(xy.x, -xy.y, 0., 1.); }`;
+
+let frag_code = 
+	`uniform sampler2D tex;
+	in vec2 UV; 
+	out vec4 color;
+	void main() { 
+		color = texture(tex, UV); }`;
+
+set_resolution();
+set_prog(prog, vtx_code, frag_code);
+set_attrib( 'xy', 2, [-1,1, -1,-1, 1,1, 1,-1]);
+set_attrib( 'uv', 2, [ 0,1,  0, 0, 1,1, 1, 0]);
+set_tex_img( tex, 'monalisa.bmp');
+
+/*---------------------- keyboard ------------------------*/
+let shift_down = 0;
+document.onkeydown = (e) => { 
+	if (e.key == 'Shift')  { shift_down = 1; }
+	if (e.key == 'Enter') {
+		if (shift_down == 0) { 
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);}
+		if (shift_down == 1) {
+			e.preventDefault();
+			shift_down = 0;
+			eval(paper.value);}}}
+
+document.onkeyup = (e) => { shift_down = 0;}
+
+/*------------------------ functions ----------------------------*/
+function set_resolution(pixels=1) {
+    let width  = canvas.getBoundingClientRect().width;
+    let height = canvas.getBoundingClientRect().height;
+    
+    canvas.width  = width/pixels;
+    canvas.height = height/pixels;
+    gl.viewport(0, 0, width/pixels, height/pixels); }
+
+function make_el(el_type, pos) {
+	let el = document.createElement(el_type);
+		el.style.position = 'fixed';
+		el.style.left   = 100*pos[0] + '%';	
+		el.style.top    = 100*pos[1] + '%';
+		el.style.width  = 100*pos[2] + '%';	
+		el.style.height = 100*pos[3] + '%';
+	document.body.append(el);
+
+	if(el_type == 'textarea') {	el.style.font = '30px mono'; }
+
+	return el;}
+
+function set_prog(prog, vc, fc){
+	vc = `#version 300 es \n precision mediump float;` + vc;
+    fc = `#version 300 es \n precision mediump float;` + fc;
+    let vs = gl.createShader(gl.VERTEX_SHADER); 
+    let fs = gl.createShader(gl.FRAGMENT_SHADER); 
+    gl.shaderSource(vs, vc); gl.compileShader(vs);
+    gl.shaderSource(fs, fc); gl.compileShader(fs);  
+    gl.attachShader(prog,vs);  
+    gl.attachShader(prog,fs);
+    gl.linkProgram(prog);     
+    gl.useProgram(prog); }
+
+function set_attrib(name, dim, _data){
+    let buf  = gl.createBuffer();
+    let loc  = gl.getAttribLocation(prog, name);
+    let data = new Float32Array( _data);    
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray( loc);
+    gl.vertexAttribPointer( loc, dim, gl.FLOAT, false, 4*dim, 0);}
+
+function set_tex_img(glsl_name, image_src) {
+	gl.uniform1i(gl.getUniformLocation(prog, glsl_name), 0);
+	let image = new Image();
+		image.src = image_src;
+		image.onload = () => {
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, tex); 	
+			gl.texImage2D( gl.TEXTURE_2D, 0,
+				gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+			gl.generateMipmap(gl.TEXTURE_2D);} }
+
+</script> </body> </html>
