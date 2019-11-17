@@ -1,0 +1,172 @@
+<!doctype html> <body> <script>
+
+/*-------------------- style options --------------------*/
+let btn_font_color  = '#ffffff';
+let btn_off_color   = '#222222';
+let btn_down_color  = '#333344';
+let btn_hover_color = '#555566';
+
+/*----------------- document elements --------------------*/
+let paper  = make_el('textarea', [.5, .05, .5, .95]);
+let canvas = make_el('canvas',   [ 0, .05, .5, .65]);
+let info   = make_el('div',      [ 0, .7,  .5, .3 ]);
+let bar    = make_el('div',      [ 0, .045, 1, .002]);
+	
+set_el_color(bar,   '#8888ff', '#000000');	
+set_el_color(paper, '#ffffff', '#000000');
+set_el_color(info,  '#333333', '#ffffff');
+
+let key_bar   = make_el( 'key', [  0, 0, .7, .048]);
+let key_up    = make_el( 'key', [.70, 0, .05,.048], "up");
+let key_down  = make_el( 'key', [.75, 0, .05,.048], "down");
+let key_left  = make_el( 'key', [.80, 0, .05,.048], "left");
+let key_right = make_el( 'key', [.85, 0, .05,.048], "right");
+let key_lite  = make_el( 'key', [.90, 0, .05,.048], "lite");
+let key_dark  = make_el( 'key', [.95, 0, .05,.048], "dark");
+
+/*------------------- graphics -----------------------------*/
+let gl   = canvas.getContext('webgl2');
+let prog = gl.createProgram();
+let vs   = gl.createShader(gl.VERTEX_SHADER); 
+let fs   = gl.createShader(gl.FRAGMENT_SHADER); 
+let tex  = gl.createTexture(); // *.$
+
+/*------------------------- glsl ---------------------*/
+let vertex_code = 
+`in vec2 xy, uv;
+out vec2 UV;
+float x, y;
+void main() { 
+  UV = uv;
+  x = xy.x;
+  y = xy.y;
+  gl_Position = vec4(-x, -y, 0., 1.); }`;
+
+let fragment_code = 
+`uniform sampler2D tex;
+in vec2 UV; 
+out vec4 color;
+void main() { 
+  vec4 c = texture(tex, UV);
+  color = vec4(c.g, c.g, c.r, 1.);}`;
+
+let program_code = 
+`set_resolution();
+set_prog(prog, vertex_code, fragment_code);
+set_attrib( 'xy', 2, [-1,1, -1,-1, 1,1, 1,-1]);
+set_attrib( 'uv', 2, [ 0,1,  0, 0, 1,1, 1, 0]);
+set_tex_img('tex', 'monalisa.bmp');
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);`;
+
+paper.value =   
+`vertex_code = \n\`${vertex_code}\`;\n
+fragment_code = \n\`${fragment_code}\`;\n
+${program_code}`;
+
+setTimeout( ()=>{ set_resolution(1); eval(paper.value);}, 200);
+setTimeout( ()=>{ set_resolution(1); eval(paper.value);}, 500);
+
+/*---------------------- keyboard ------------------------*/
+let shift_down = 0;
+document.onkeydown = (e) => { 
+	if (e.key == 'Shift')  { shift_down = 1; }
+	if (e.key == 'Enter') {
+		if (shift_down == 1) {
+			e.preventDefault();
+			shift_down = 0;
+			paper.spellCheck = "false";
+			eval(paper.value);}}}
+document.onkeyup = (e) => { shift_down = 0;}
+
+/*------------------------ functions ----------------------------*/
+function make_el(el_type, pos, text = '', fn = ()=>{}) {
+	let el = document.createElement(el_type);
+		el.style.position = 'fixed';
+		set_el_pos(el, pos)
+	document.body.append(el);
+	
+	el.style.border  = 'none';
+	el.style.outline = 'none'; 
+	el.style.resize  = 'none';
+	el.style.padding = 0; 
+	
+	if (el_type == 'div') {
+		el.innerHTML = text;
+		el.style.color = el.style.fontColor = '#000000';
+		el.style.backgroundColor = '#dddddd';}
+
+	if (el_type == 'textarea') {	
+		el.style.fontSize = 20;
+		el.style.fontFamily = 'mono';
+		el.style.rows = 3;
+		el.setAttribute('spellcheck', 'false');}
+
+	if (el_type == 'key') {
+		el.textContent = text;
+		el.style.backgroundColor = btn_off_color;
+		el.style.color = btn_font_color;
+		el.onmouseup    = () => { el.style.backgroundColor = btn_hover_color; }
+		el.onmouseleave = () => { el.style.backgroundColor = btn_off_color; }
+		el.onmouseenter = () => { el.style.backgroundColor = btn_hover_color;}
+		el.onmousedown  = () => { 
+			el.style.backgroundColor = btn_down_color;
+			fn(); }}
+	return el; }
+
+function set_el_pos(_el, pos) {
+	_el.style.left   = 100*pos[0] + '%';	
+	_el.style.top    = 100*pos[1] + '%';
+	_el.style.width  = 100*pos[2] + '%';	
+	_el.style.height = 100*pos[3] + '%'; }
+
+function set_el_color(el, back_color, font_color){
+	el.style.fontColor = font_color;
+	el.style.color = font_color;
+	el.style.backgroundColor = back_color; }
+
+/*--------------------- graphics functions -------------------*/
+function set_resolution(pixels=1) {
+    let width  = canvas.getBoundingClientRect().width;
+    let height = canvas.getBoundingClientRect().height;
+    
+    canvas.width  = width/pixels;
+    canvas.height = height/pixels;
+    gl.viewport(0, 0, width/pixels, height/pixels); }
+
+function set_prog(prog, vc, fc){
+	vc = `#version 300 es \n precision mediump float;` + vc;
+    fc = `#version 300 es \n precision mediump float;` + fc;
+    gl.shaderSource(vs, vc); gl.compileShader(vs);
+    gl.shaderSource(fs, fc); gl.compileShader(fs);  
+    gl.attachShader(prog,vs);  
+    gl.attachShader(prog,fs);
+    gl.linkProgram(prog);     
+    gl.useProgram(prog); }
+
+function set_attrib(name, dim, _data){
+    let buf  = gl.createBuffer();
+    let loc  = gl.getAttribLocation(prog, name);
+    let data = new Float32Array( _data);    
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray( loc);
+    gl.vertexAttribPointer( loc, dim, gl.FLOAT, false, 4*dim, 0);}
+
+function set_tex_img(glsl_name, img_name) {
+	gl.uniform1i(gl.getUniformLocation(prog, glsl_name), 0);
+	let image = new Image();
+		image.src = img_name;
+		image.onload = () => {
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, tex); 	
+			gl.texImage2D( gl.TEXTURE_2D, 0,
+				gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+			gl.generateMipmap(gl.TEXTURE_2D);} }
+
+window.onerror = (msg, url, line) =>{ 
+	info.innerHTML = 
+		`<font color="#ffcccc"> ${msg}  </font> <br/>
+		 <font color="#ccffcc"> ${url}  </font> <br/>
+		 <font color="#ccccff"> ${line} </font> <br/>`;}
+
+</script> </body> </html>
