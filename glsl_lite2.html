@@ -1,0 +1,260 @@
+<!doctype html> <body> <script>
+
+/*-------------------- style options --------------------*/
+let btn_font_color  = '#ffffff';
+let btn_off_color   = '#222222';
+let btn_down_color  = '#333344';
+let btn_hover_color = '#555566';
+
+/*----------------- document elements --------------------*/
+let paper  = make_el('textarea', [.5, .05, .5, .95]);
+let canvas = make_el('canvas',   [ 0, .05, .5, .65]);
+let info   = make_el('div',      [ 0, .7,  .5, .3 ]);
+let bar    = make_el('div',      [ 0, .048, 1, .002]);
+
+let btn_tmp = make_el('key',[ 0,0,.5,.048]);
+let btn_doc = make_el('key',[.5,0,.1,.048],
+	"doc", () => { paper.value = script_doc; });
+
+let btn_ref = make_el('key',[.6,0,.1,.048],
+	"ref", () => { paper.value = script_ref; });
+
+let btn_a = make_el( 'key',	[.7, 0, .1, .048], 
+	"Shaders", () => { paper.value = script_a;});
+
+let btn_b = make_el('key', [.8, 0, .1, .048],
+	"Program", () => { paper.value = script_b;});
+
+let btn_c = make_el('key',[.9, 0, .1, .048],
+	"Loop", () => { paper.value = script_c;});
+
+/*------------------- graphics -----------------------------*/
+let gl   = canvas.getContext('webgl2');
+let prog = gl.createProgram();
+let vs   = gl.createShader(gl.VERTEX_SHADER); 	gl.attachShader(prog,vs);  
+let fs   = gl.createShader(gl.FRAGMENT_SHADER); gl.attachShader(prog,fs);
+let tex  = gl.createTexture(); // *.$
+
+let cntrl_down = 0;
+let shift_down = 0;
+let a = b = c = 0;
+let a_loc = 0;
+
+let loop_fn = ()=>{};
+
+let script_a = 
+`save_as_local_file('a');
+
+set_prog(prog, 
+\`in vec2 xy, uv; out vec2 UV; 
+uniform float a,b,c;
+void main() { 
+   UV = uv;
+   gl_Position = vec4(-xy, 0., 1.); }\` ,
+
+\`in vec2 UV; out vec4 color;
+uniform sampler2D tex;
+uniform float a;
+void main() { 
+   vec4 c = texture(tex, UV);
+   color = vec4(c.g, c.g, c.r, .5 + a/4.);} \`);
+
+set_resolution();
+set_attrib( 'xy', 2, [-1,1, -1,-1, 1,1, 1,-1]);
+set_attrib( 'uv', 2, [ 0,1,  0, 0, 1,1, 1, 0]);
+set_tex_img('tex', 'Vincent_Van_Gogh_0013.jpg');
+a_loc = gl.getUniformLocation(prog, 'a');
+gl.uniform1f(a_loc, a);
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+
+loop_fn = () => { 
+   let gui_t = new Date().getTime() - gui_time0;
+   gl.uniform1f(a_loc, Math.sin(gui_t/1000));
+   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }`;
+
+let script_ref = `walk-thru, fn reference`;
+let script_doc = `about program, to-do`;
+
+/* ---------------------- init ----------------------*/
+setTimeout( ()=>{ 
+	info.innerHTML = Math.random();
+	eval(script_a);}, 1, 500, 2000); 
+
+paper.value = script_a;
+
+/*----------------------- loop -------------------------*/
+let gui_time0 = new Date().getTime();
+gui_loop();
+function gui_loop() {
+	if (shift_down == 1 && cntrl_down == 1) {
+		loop_fn(); }
+		requestAnimationFrame(gui_loop);}
+
+/*---------------------- keyboard ------------------------*/
+document.onkeydown = (e) => { 
+	if (e.key == 'Control'){ cntrl_down = 1; }
+	if (e.key == 'Shift')  { shift_down = 1; }
+	if (shift_down == 1) {
+		if (e.key == 'Enter') {
+			e.preventDefault();
+			shift_down = 0;
+			clear();
+			printf(new Date());
+			eval(paper.value);}
+		if (e.key == 'ArrowLeft') { }}}			
+document.onkeyup = (e) => { shift_down = cntrl_down = 0;}
+
+/*------------------------ functions ----------------------------*/
+function make_el(el_type, pos, text = '', fn = ()=>{}) {
+	let el = document.createElement(el_type);
+		el.style.position = 'fixed';
+		set_el_pos(el, pos)
+	document.body.append(el);
+	
+	el.style.border  = 'none';
+	el.style.outline = 'none'; 
+	el.style.resize  = 'none';
+	el.style.padding = 0; 
+	
+	if (el_type == 'div') {
+		el.innerHTML = text;
+		el.style.color = el.style.fontColor = '#000000';
+		el.style.backgroundColor = '#dddddd';}
+
+	if (el_type == 'textarea') {	
+		el.style.fontSize = 20;
+		el.style.fontFamily = 'mono';
+		el.style.rows = 3;
+		el.setAttribute('spellcheck', 'false');}
+
+	if (el_type == 'key') {
+		el.textContent = text;
+		el.style.backgroundColor = btn_off_color;
+		el.style.color = btn_font_color;
+		el.onmouseup    = () => { el.style.backgroundColor = btn_hover_color; }
+		el.onmouseleave = () => { el.style.backgroundColor = btn_off_color; }
+		el.onmouseenter = () => { el.style.backgroundColor = btn_hover_color;}
+		el.onmousedown  = () => { 
+			el.style.backgroundColor = btn_down_color;
+			fn(); }}
+	return el; }
+
+function set_el_pos(_el, pos) {
+	_el.style.left   = 100*pos[0] + '%';	
+	_el.style.top    = 100*pos[1] + '%';
+	_el.style.width  = 100*pos[2] + '%';	
+	_el.style.height = 100*pos[3] + '%'; }
+
+function set_el_color(el, back_color, font_color){
+	el.style.fontColor = font_color;
+	el.style.color = font_color;
+	el.style.backgroundColor = back_color; }
+
+/*--------------------- graphics functions -------------------*/
+function set_resolution(pixels=1) {
+    let width  = canvas.getBoundingClientRect().width;
+    let height = canvas.getBoundingClientRect().height;  
+    canvas.width  = width/pixels;
+    canvas.height = height/pixels;
+    gl.viewport(0, 0, width/pixels, height/pixels); 
+	printf( 
+		`canvas width: ${(width/pixels).toFixed(1)} <br/>
+		 canvas height: ${(width/pixels).toFixed(1)}`);}
+
+function set_prog(prog, vc, fc){
+	vc = `#version 300 es \n precision mediump float;` + vc;
+    fc = `#version 300 es \n precision mediump float;` + fc;
+    gl.shaderSource(vs, vc); gl.compileShader(vs);
+    gl.shaderSource(fs, fc); gl.compileShader(fs);  
+    gl.linkProgram(prog);     
+    gl.useProgram(prog); }
+
+function set_attrib(name, dim, _data){
+    let buf  = gl.createBuffer();
+    let loc  = gl.getAttribLocation(prog, name);
+    let data = new Float32Array( _data);    
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray( loc);
+    gl.vertexAttribPointer( loc, dim, gl.FLOAT, false, 4*dim, 0);}
+
+function set_tex_img(glsl_name, img_name) {
+	gl.uniform1i(gl.getUniformLocation( prog, glsl_name), 0);
+	let image = new Image();
+		image.src = img_name;
+		image.onload = () => {
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, tex); 	
+			gl.texImage2D( gl.TEXTURE_2D, 0,
+				gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+			gl.generateMipmap(gl.TEXTURE_2D);} 
+
+	info.innerHTML += `loaded image: ${img_name} <br/>`; }
+
+window.onerror = (msg, url, line) =>{ 
+	printf(
+		`<font color="#882222"> ${msg}  </font> <br/>
+		 <font color="#228822"> ${url}  </font> <br/>
+		 <font color="#222288"> ${line} </font> <br/>`);}
+
+/*------------------------- Save, Open, Files -----------------------*/
+function open_local_file(file) { 
+	paper.value = localStorage.getItem(file);
+	printf('opened local file: ' + file);}
+
+function save_as_local_file(file) { 
+	localStorage.setItem(file, paper.value); 
+	printf( 
+		`<i> <font color='#334455'> file saved: </font> </i>
+		 <b> <font color='#552222'> '${file}'</font> </b> `);}
+
+function list_local_files() {
+	printf('local files:');
+	for (let i in localStorage) {
+		if (i != 'setItem'  && i != 'removeItem' &&
+			i != 'getItem'  && i != 'clear' &&
+			i != 'key' 		&& i != 'length') {	
+			printf("'" + i + "'"); }}}
+
+/*--------------------- Utility Functions ------------------------*/
+function printf(text){ info.innerHTML += text + '<br/>'; }
+function clear() { 	   info.innerHTML  =   ''; }
+function cos(theta) { return Math.cos(theta); }
+
+function min(array) {
+	let min = 1e6;
+	for (let i = 0; i < array.length; i++) {
+		if ( array[i] < min ) min = array[i];}
+	return min;}
+
+function max(array) {
+	let max = -1e6;
+	for (let i = 0; i < array.length; i++) {
+		if ( array[i] > max ) max = array[i];}
+	return max;}
+
+function linspace(low, high, n) {
+    let array = new Float32Array(n);
+    for (let i = 0; i < n; i++) array[i] = i*(high-low)/n;
+    return array;}
+
+function rand() { return Math.random();}
+
+function random(low, high, n) {
+    let array = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+        array[i] = low + (high-low)*Math.random();}
+    return array;}
+
+function randomColor() {
+	let c = 100000 + 500000*Math.random();
+	c = '#' + c.toFixed();	return c;}
+
+function vlist(array) {
+	let string = '';
+	for (let i = 0; i < array.length; i++) {
+		string += array[i]; string +='<br>'; }
+	return string; }
+
+</script> </body> </html>
