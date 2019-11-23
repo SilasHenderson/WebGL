@@ -1,0 +1,180 @@
+<!doctype html>
+
+<!-- - - - - - - - - - - - - - Document - - - - - - - - - - - - - -->
+<p id="paper" style=
+    'position:fixed; background-color:#bbccdd;
+     left:0%;  width:22%; top:0%; height:100%;'> 
+</p>
+
+<canvas id="canvas" style=
+    'position:fixed; font-family:sans-serif;
+    left:22%; width:78%; top:0%; height:100%;'> 
+</canvas>
+
+<script>
+let paper  = document.getElementById('paper');
+let canvas = document.getElementById('canvas');
+let gl     = canvas.getContext("webgl2");      
+let prog   = make_program(`
+    layout(location=0) in vec2 pos; 
+    layout(location=1) in vec2 vel;
+    out vec2 pos_out, vel_out;
+  
+    uniform float dt, GM, span;
+    void main() {
+        vel_out = vel + GM*pos/pow(length(pos),3.)*dt;    
+        pos_out = pos + vel_out*dt; //#$    
+        gl_PointSize = 1.;
+        gl_Position  = vec4(pos, 0., span);}`,
+ 
+    `out vec4 fragColor;
+    void main() { 
+        fragColor = vec4(0., 0., 0., 1.);}`, 
+
+    ["pos_out", "vel_out"]);
+
+/*---------------------- Variables -------------------------*/
+let vao = [ gl.createVertexArray(),       gl.createVertexArray()];
+let tfo = [ gl.createTransformFeedback(), gl.createTransformFeedback()];
+
+let pos_buf  = [gl.createBuffer(), gl.createBuffer()];
+let vel_buf  = [gl.createBuffer(), gl.createBuffer()];
+let pos_data = Random(    -Math.random(),     Math.random(), 2000000);
+let vel_data = Random(-.01*Math.random(), -.1*Math.random(), 2000000);
+
+let state  = 0;
+let GM     = -.5;  let GM_vel = 0;
+let dt     = .01;  let dt_vel = 0;
+
+load_random_pos();
+
+/*------------------------- Setup  -------------------------*/
+gl.bindVertexArray(vao[0]);
+set_attrib('pos', 2, pos_buf[0], pos_data);
+set_attrib('vel', 2, vel_buf[0], vel_data);
+
+gl.bindVertexArray(vao[1]);
+set_attrib('pos', 2, pos_buf[1], pos_data);
+set_attrib('vel', 2, vel_buf[1], vel_data);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, null);
+set_transform(tfo[0], [0, 1], [pos_buf[0], vel_buf[0]]);
+set_transform(tfo[1], [0, 1], [pos_buf[1], vel_buf[1]]);
+    
+/*--------------------------- Main ------------------------------*/
+let iterations = 0;
+let span = 1;
+let span_vel = 1;
+
+set_resolution(1);
+
+loop();
+function loop() {   
+    iterations++;
+    GM += GM_vel;       set_uniform('GM', GM);
+    dt += dt_vel;       set_uniform('dt', dt);
+    span *= span_vel;   set_uniform('span', span); 
+
+    gl.clearColor(1, 1, 1, 1); 
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.bindVertexArray(vao[state]);
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tfo[1-state]);
+    gl.beginTransformFeedback(gl.POINTS);
+    gl.drawArrays(gl.POINTS, 0, pos_data.length/2);
+    gl.endTransformFeedback();
+    
+    paper.innerHTML = 
+        `<b> Gravity! </b> <br/>
+        
+        <hr> <i> Keyboard </i> 
+        <br> &#160 Enter, Shift: zoom <br/>
+
+        <br> <i> Math </i>
+        <br> &#160 a = ${ GM.toFixed(3) }/x<sup>2</sup> 
+        <br> &#160 v = v + a * ${ dt.toFixed(4)}
+        <br> &#160 x = x + v * ${ dt.toFixed(4)}
+        <br> &#160 iterations: ${iterations } <br/>
+        
+        <br> <i> About </i>
+        <br> &#160 free .html file.
+        <br> &#160 press cntrl+u for source code `;
+
+    state = 1 - state;
+    requestAnimationFrame(loop); }
+
+
+/*------------------------- Functions -------------------------*/
+document.onkeydown = (e) => {
+    if (e.key == 'Enter') span_vel =  .95;
+    if (e.key == 'Shift') span_vel = 1.05; }
+
+document.onkeyup = (e) => { GM_vel = dt_vel = 0; span_vel = 1; }
+
+function set_uniform(name, val, dim=1) {
+    if (dim == 1) {
+        gl.uniform1f(gl.getUniformLocation(prog, name), val);}}
+
+function set_attrib(name, dim, buf, data){
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    
+    let loc  = gl.getAttribLocation(prog, name);   
+    gl.enableVertexAttribArray( loc);
+    gl.vertexAttribPointer( loc, dim, gl.FLOAT, false, 4*dim, 0);}
+
+function set_transform(transform, index, buffer) {
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transform);
+    for (let i = 0; i < index.length; i++) {
+        gl.bindBufferBase(
+            gl.TRANSFORM_FEEDBACK_BUFFER, index[i], buffer[i]);}}
+
+function make_program(vc,fc, tf) {
+    vc = `#version 300 es \n precision lowp float;` + vc;
+    fc = `#version 300 es \n precision highp float;` + fc;
+    
+    let vs = gl.createShader(gl.VERTEX_SHADER); 
+    let fs = gl.createShader(gl.FRAGMENT_SHADER); 
+    gl.shaderSource(vs,vc); gl.compileShader(vs);
+    gl.shaderSource(fs,fc); gl.compileShader(fs);
+    
+    let prog = gl.createProgram();
+        gl.attachShader(prog,vs);  
+        gl.attachShader(prog,fs);
+        gl.transformFeedbackVaryings(prog, tf, gl.SEPARATE_ATTRIBS);
+        gl.linkProgram(prog);     
+        gl.useProgram(prog);
+    return prog; }
+
+function Random(low, high, n) {
+    let array = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+        array[i] = low + (high-low)*Math.random();}
+    return array;}
+
+function load_random_pos() {   
+    let star_pos = Random(-.5, .5, 2);
+    let star_vel = Random(-.5, .5, 1, 2);
+    let star_rad = .5*Math.random();
+
+    for (let i = 0; i < 1000000; i++) {
+
+        pos_data[2*i]   = star_pos[0] + star_rad*(1 - 2*Math.random());
+        pos_data[2*i+1] = star_pos[1] + star_rad*(1 - 2*Math.random());
+        vel_data[2*i]   = star_vel[0] + star_rad*(1 - 2*Math.random());
+        vel_data[2*i+1] = star_vel[1] + star_rad*(1 - 2*Math.random());
+
+        if (Math.random() > .99999) {
+            star_pos = Random( -.5,  .5, 2);
+            star_vel = Random(  -2,   2, 2); } 
+            star_rad = .1*Math.random(); } }
+
+function set_resolution(pixels=1) {
+    let width  = canvas.getBoundingClientRect().width;
+    let height = canvas.getBoundingClientRect().height;
+    
+    canvas.width  = width/pixels;
+    canvas.height = height/pixels;
+    gl.viewport(0, 0, width/pixels, height/pixels); }
+
+</script> <!-- ($|#) --> 
