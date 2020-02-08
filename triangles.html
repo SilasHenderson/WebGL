@@ -1,0 +1,99 @@
+<!doctype html> 
+<meta charset='utf-8'>
+
+<canvas id='canvas'> </canvas>
+
+<script>
+
+let gl = canvas.getContext('webgl2');
+
+let prog = make_program(
+    `in vec3 pos, clr;
+    out vec3 color;
+    void main() {
+        color = clr;
+        gl_Position = vec4(pos, 1.);}`,
+
+    `in vec3 color;
+    out vec4 fcolor;
+    void main() { 
+        fcolor = vec4(color, 1.); }`);
+
+let geom = make_geom('pos', 'clr', 1000);
+
+    geom.tri([-1,-1,0], [1,-1,0], [1,1,0], [.5,.5,.5]);
+    geom.tri([-1,-1,0], [-1,1,0], [1,1,0], [.5,.6,.7]);
+    geom.sync();
+    geom.draw();
+
+function make_geom(pos, clr, max) {
+    let geom = {};
+
+        geom.idx = 0;
+
+        geom.pos_loc = gl.getAttribLocation(prog, pos);
+        geom.clr_loc = gl.getAttribLocation(prog, clr);
+
+        geom.pos_buf = gl.createBuffer();
+        geom.clr_buf = gl.createBuffer();
+
+        geom.pos_arr = new Float32Array(3*max);
+        geom.clr_arr = new Float32Array(3*max);
+
+    gl.enableVertexAttribArray(geom.pos_loc);
+    gl.enableVertexAttribArray(geom.clr_loc);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, geom.pos_buf);
+    gl.bufferData(gl.ARRAY_BUFFER, geom.pos_arr, gl.STATIC_DRAW);
+    gl.vertexAttribPointer( geom.pos_loc,3,gl.FLOAT,gl.FALSE,0,0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, geom.clr_buf);
+    gl.bufferData(gl.ARRAY_BUFFER, geom.clr_arr, gl.STATIC_DRAW);
+    gl.vertexAttribPointer( geom.clr_loc,3,gl.FLOAT,gl.FALSE,0,0);
+
+    geom.tri = (v1, v2, v3, clr) => {
+        geom.pos_arr[9*geom.idx    ] = v1[0];
+        geom.pos_arr[9*geom.idx + 1] = v1[1];
+        geom.pos_arr[9*geom.idx + 2] = v1[2];
+        geom.pos_arr[9*geom.idx + 3] = v2[0];
+        geom.pos_arr[9*geom.idx + 4] = v2[1];
+        geom.pos_arr[9*geom.idx + 5] = v2[2];
+        geom.pos_arr[9*geom.idx + 6] = v3[0];
+        geom.pos_arr[9*geom.idx + 7] = v3[1];
+        geom.pos_arr[9*geom.idx + 8] = v3[2];
+
+        for (let i = 0; i < 3; i++) {
+            geom.clr_arr[9*geom.idx + 3*i    ] = clr[0];
+            geom.clr_arr[9*geom.idx + 3*i + 1] = clr[1];
+            geom.clr_arr[9*geom.idx + 3*i + 2] = clr[2]; }
+
+        geom.idx++;}
+
+    geom.sync = () => {
+        gl.bindBuffer(gl.ARRAY_BUFFER, geom.pos_buf);
+        gl.bufferData(gl.ARRAY_BUFFER, geom.pos_arr, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, geom.clr_buf);
+        gl.bufferData(gl.ARRAY_BUFFER, geom.clr_arr, gl.STATIC_DRAW);}
+
+    geom.draw = () => {
+        gl.drawArrays(gl.TRIANGLES, 0, 3*geom.idx);}
+
+    return geom; }
+
+function make_program(vc,fc) {
+    vc = `#version 300 es \n precision lowp float;` + vc;
+    fc = `#version 300 es \n precision highp float;` + fc;
+    
+    let vs = gl.createShader(gl.VERTEX_SHADER); 
+    let fs = gl.createShader(gl.FRAGMENT_SHADER); 
+    gl.shaderSource(vs,vc); gl.compileShader(vs);
+    gl.shaderSource(fs,fc); gl.compileShader(fs);
+    
+    let prog = gl.createProgram();
+        gl.attachShader(prog,vs);  
+        gl.attachShader(prog,fs);
+        gl.linkProgram(prog);     
+        gl.useProgram(prog);
+    return prog; }
+
+</script>
